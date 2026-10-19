@@ -6,7 +6,7 @@ import { submitScore } from "../api/scoreApi.js";
 
 /**
  * Game Page Component
- * 
+ *
  * Runs the survival arena game loop on Canvas.
  * Upon Game Over, handles automatic score submission to MongoDB via `submitScore` caller (`POST /api/scores`).
  */
@@ -25,7 +25,7 @@ export default function Game() {
   const handleGameOver = useCallback(
     async (matchResult) => {
       setResult(matchResult);
-      setPaused(true);
+      setPaused(false); // game over overlay takes over; pause is irrelevant
 
       // If user is not logged in, skip backend submission
       if (!token) return;
@@ -33,7 +33,6 @@ export default function Game() {
       setSubmitting(true);
       setError("");
       try {
-        // Send score and survival time to MongoDB backend via scoreApi caller
         await submitScore(matchResult.score, matchResult.survivalTime, token);
       } catch (err) {
         console.error("Score submission failed:", err);
@@ -44,6 +43,14 @@ export default function Game() {
     },
     [token]
   );
+
+  /**
+   * Toggle pause. Disabled once the run is over.
+   */
+  const handleTogglePause = useCallback(() => {
+    if (result) return;
+    setPaused((p) => !p);
+  }, [result]);
 
   /**
    * Reset game state and remount canvas for a new match run
@@ -109,9 +116,6 @@ export default function Game() {
             }}
           >
             <h1 style={{ fontSize: 42, color: "#f85149" }}>INFECTED</h1>
-            <p style={{ fontSize: 20, marginBottom: 6 }}>
-              Kills: <strong>{result.score}</strong>
-            </p>
             <p style={{ fontSize: 20, marginBottom: 6 }}>
               Kills: <strong>{result.score}</strong>
             </p>
