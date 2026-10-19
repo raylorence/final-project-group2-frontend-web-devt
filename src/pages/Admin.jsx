@@ -1,50 +1,74 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import {
-  adminListUsers,
-  adminDeleteUser,
-  adminDeleteScore,
-  getLeaderboard,
-} from "../api/client.js";
+import { getUsers, deleteUser, deleteScore } from "../api/adminApi.js";
+import { getLeaderboard } from "../api/scoreApi.js";
 
+/**
+ * Admin Dashboard Component
+ * 
+ * Provides administrator moderation capabilities:
+ * - View registered player profiles (`getUsers` -> `GET /api/admin/users`)
+ * - View all submitted match scores on the leaderboard (`getLeaderboard` -> `GET /api/scores`)
+ * - Permanently delete player account and cascade delete scores (`deleteUser` -> `DELETE /api/admin/users/:userId`)
+ * - Delete illegitimate or cheated score records (`deleteScore` -> `DELETE /api/admin/scores/:scoreId`)
+ */
 export default function Admin() {
   const { token } = useAuth();
   const [users, setUsers] = useState([]);
   const [scores, setScores] = useState([]);
   const [error, setError] = useState("");
 
+  /**
+   * Refresh users and leaderboard scores from MongoDB
+   */
   async function refresh() {
     try {
-      const [u, s] = await Promise.all([adminListUsers(token), getLeaderboard()]);
-      setUsers(u);
-      setScores(s);
+      const [userList, scoreList] = await Promise.all([
+        getUsers(token),
+        getLeaderboard()
+      ]);
+
+      const parsedUsers = Array.isArray(userList) ? userList : (userList?.data || userList?.users || []);
+      const parsedScores = Array.isArray(scoreList) ? scoreList : (scoreList?.data || []);
+
+      setUsers(parsedUsers);
+      setScores(parsedScores);
     } catch (err) {
-      setError(err.message);
+      console.error("Admin dashboard fetch error:", err);
+      setError(err.message || "Failed to load admin data");
     }
   }
 
   useEffect(() => {
-    refresh();
+    if (token) {
+      refresh();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  /**
+   * Delete a player account and cascade remove their associated scores
+   */
   async function handleDeleteUser(id) {
     if (!window.confirm("Permanently delete this user and all their scores?")) return;
     try {
-      await adminDeleteUser(token, id);
+      await deleteUser(id, token);
       refresh();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to delete user");
     }
   }
 
+  /**
+   * Delete a specific score from the leaderboard
+   */
   async function handleDeleteScore(id) {
     if (!window.confirm("Delete this score entry?")) return;
     try {
-      await adminDeleteScore(token, id);
+      await deleteScore(id, token);
       refresh();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to delete score");
     }
   }
 
@@ -98,9 +122,11 @@ export default function Admin() {
             <tbody>
               {scores.map((s) => (
                 <tr key={s._id} style={{ borderBottom: "1px solid #21262d" }}>
-                  <td style={{ padding: 10 }}>{s.username || s.userId?.username || "—"}</td>
-                  <td style={{ padding: 10, fontWeight: 700 }}>{s.score}</td>
-                  <td style={{ padding: 10 }} className="muted">{s.survivalTime ?? "—"}s</td>
+                  <td style={{ padding: 10 }}>{s.player?.username || s.username || s.userId?.username || "—"}</td>
+                  <td style={{ padding: 10, fontWeight: 700 }}>{s.score ?? s.totalScore ?? 0}</td>
+                  <td style={{ padding: 10 }} className="muted">
+                    {s.survivalTime !== undefined && s.survivalTime !== null ? `${s.survivalTime}s` : "—"}
+                  </td>
                   <td style={{ padding: 10, textAlign: "right" }}>
                     <button className="danger" onClick={() => handleDeleteScore(s._id)}>
                       Delete
