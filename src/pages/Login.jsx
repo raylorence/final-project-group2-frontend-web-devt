@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { login } from "../api/client.js";
+import { login } from "../api/authApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
+/**
+ * Login Page Component
+ * 
+ * Authenticates players or administrators against the MongoDB backend.
+ * Uses `login` caller from `authApi.js` which sends credentials to `POST /api/auth/login`.
+ */
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -10,15 +16,33 @@ export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
+  /**
+   * Handle login form submission
+   */
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+
     try {
-      const { token, user } = await login(username.trim(), password);
+      // Call backend login endpoint via authApi service
+      const response = await login(username.trim(), password);
+
+      // Extract token and user object
+      const token = response.token || response.data?.token;
+      const user = response.user || response.data?.user || {
+        _id: response.data?._id || response._id,
+        username: username.trim(),
+        role: response.data?.role || response.role || "player"
+      };
+
+      // Store in auth context
       signIn(token, user);
+
+      // Navigate based on user role (Admins go to dashboard, players go to main menu)
       navigate(user.role === "admin" ? "/admin" : "/menu");
     } catch (err) {
-      setError(err.message);
+      // Display error message from server
+      setError(err.message || "Invalid credentials. Please try again.");
     }
   }
 

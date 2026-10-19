@@ -2,8 +2,14 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GameCanvas from "../game/GameCanvas.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { submitScore } from "../api/client.js";
+import { submitScore } from "../api/scoreApi.js";
 
+/**
+ * Game Page Component
+ * 
+ * Runs the survival arena game loop on Canvas.
+ * Upon Game Over, handles automatic score submission to MongoDB via `submitScore` caller (`POST /api/scores`).
+ */
 export default function Game() {
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -13,16 +19,25 @@ export default function Game() {
   const [gameKey, setGameKey] = useState(0);
   const [paused, setPaused] = useState(false);
 
+  /**
+   * Invoked when player health reaches 0 (Game Over)
+   */
   const handleGameOver = useCallback(
-    async (r) => {
-      setResult(r);
+    async (matchResult) => {
+      setResult(matchResult);
       setPaused(true);
+
+      // If user is not logged in, skip backend submission
       if (!token) return;
+
       setSubmitting(true);
+      setError("");
       try {
-        await submitScore(token, r.score, r.survivalTime);
+        // Send score and survival time to MongoDB backend via scoreApi caller
+        await submitScore(matchResult.score, matchResult.survivalTime, token);
       } catch (err) {
-        setError(err.message);
+        console.error("Score submission failed:", err);
+        setError(err.message || "Failed to submit score to leaderboard");
       } finally {
         setSubmitting(false);
       }
@@ -30,11 +45,14 @@ export default function Game() {
     [token]
   );
 
+  /**
+   * Reset game state and remount canvas for a new match run
+   */
   function restart() {
     setResult(null);
     setError("");
     setPaused(false);
-    setGameKey((k) => k + 1); // remount canvas → fresh engine
+    setGameKey((k) => k + 1); // Remount canvas to reset game engine
   }
 
   return (
@@ -63,7 +81,9 @@ export default function Game() {
             }}
           >
             <h1 style={{ fontSize: 42, color: "#f85149" }}>INFECTED</h1>
-            <p style={{ fontSize: 20, marginBottom: 6 }}>Kills: <strong>{result.score}</strong></p>
+            <p style={{ fontSize: 20, marginBottom: 6 }}>
+              Kills: <strong>{result.score}</strong>
+            </p>
             <p className="muted" style={{ marginBottom: 18 }}>
               Survived {result.survivalTime}s
             </p>
