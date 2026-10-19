@@ -1,0 +1,83 @@
+import { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import GameCanvas from "../game/GameCanvas.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { submitScore } from "../api/client.js";
+
+export default function Game() {
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [result, setResult] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [gameKey, setGameKey] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  const handleGameOver = useCallback(
+    async (r) => {
+      setResult(r);
+      setPaused(true);
+      if (!token) return;
+      setSubmitting(true);
+      try {
+        await submitScore(token, r.score, r.survivalTime);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [token]
+  );
+
+  function restart() {
+    setResult(null);
+    setError("");
+    setPaused(false);
+    setGameKey((k) => k + 1); // remount canvas → fresh engine
+  }
+
+  return (
+    <div className="container">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <h2>Huling Kapsula — Survival</h2>
+        <div className="muted">WASD / Arrows move · Hold Space to fire · Mouse aims</div>
+      </div>
+
+      <div style={{ position: "relative" }}>
+        <GameCanvas key={gameKey} onGameOver={handleGameOver} paused={paused} />
+
+        {result && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(7, 11, 16, 0.85)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 10,
+              textAlign: "center",
+              padding: 24,
+            }}
+          >
+            <h1 style={{ fontSize: 42, color: "#f85149" }}>INFECTED</h1>
+            <p style={{ fontSize: 20, marginBottom: 6 }}>Kills: <strong>{result.score}</strong></p>
+            <p className="muted" style={{ marginBottom: 18 }}>
+              Survived {result.survivalTime}s
+            </p>
+            {submitting && <p className="muted">Submitting score…</p>}
+            {error && <p className="error">{error}</p>}
+            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+              <button onClick={restart}>Try Again</button>
+              <button className="secondary" onClick={() => navigate("/menu")}>
+                Main Menu
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
