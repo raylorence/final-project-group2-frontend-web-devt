@@ -55,15 +55,42 @@ export default function Game() {
     setGameKey((k) => k + 1); // Remount canvas to reset game engine
   }
 
+  const isRunning = !result;
+
   return (
     <div className="container">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 14,
+          gap: 12,
+        }}
+      >
         <h2>Huling Kapsula — Survival</h2>
-        <div className="muted">WASD / Arrows move · Hold Space to fire · Mouse aims</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div className="muted" style={{ fontSize: 13 }}>
+            WASD move · Spacebar shoot · Esc pause
+          </div>
+          <button
+            className="secondary"
+            onClick={handleTogglePause}
+            disabled={!isRunning}
+            style={{ minWidth: 90 }}
+          >
+            {paused ? "Resume" : "Pause"}
+          </button>
+        </div>
       </div>
 
       <div style={{ position: "relative" }}>
-        <GameCanvas key={gameKey} onGameOver={handleGameOver} paused={paused} />
+        <GameCanvas
+          key={gameKey}
+          onGameOver={handleGameOver}
+          onPause={handleTogglePause}
+          paused={paused}
+        />
 
         {result && (
           <div
@@ -78,9 +105,13 @@ export default function Game() {
               borderRadius: 10,
               textAlign: "center",
               padding: 24,
+              zIndex: 10,
             }}
           >
             <h1 style={{ fontSize: 42, color: "#f85149" }}>INFECTED</h1>
+            <p style={{ fontSize: 20, marginBottom: 6 }}>
+              Kills: <strong>{result.score}</strong>
+            </p>
             <p style={{ fontSize: 20, marginBottom: 6 }}>
               Kills: <strong>{result.score}</strong>
             </p>
