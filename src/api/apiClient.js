@@ -10,16 +10,15 @@
  */
 
 const getInitialBaseUrl = () => {
+    let url = 'http://localhost:5000';
     // Check Vite environment variable first (VITE_API_URL)
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL;
+        url = import.meta.env.VITE_API_URL;
+    } else if (typeof process !== 'undefined' && process.env && (process.env.VITE_API_URL || process.env.API_BASE_URL)) {
+        // Check Node/process environment variable if available
+        url = process.env.VITE_API_URL || process.env.API_BASE_URL;
     }
-    // Check Node/process environment variable if available
-    if (typeof process !== 'undefined' && process.env && (process.env.VITE_API_URL || process.env.API_BASE_URL)) {
-        return process.env.VITE_API_URL || process.env.API_BASE_URL;
-    }
-    // Default fallback to local Express server
-    return 'http://localhost:5000';
+    return String(url).replace(/\/+$/, '');
 };
 
 const API_CONFIG = {
@@ -166,10 +165,15 @@ export const apiRequest = async (endpoint, options = {}) => {
         config.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
 
-    // Construct full URL
-    const url = endpoint.startsWith('http://') || endpoint.startsWith('https://')
-        ? endpoint
-        : `${API_CONFIG.BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+    // Construct full URL with safe slash joining
+    let url;
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+        url = endpoint;
+    } else {
+        const cleanBase = (API_CONFIG.BASE_URL || '').replace(/\/+$/, '');
+        const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        url = `${cleanBase}${cleanEndpoint}`;
+    }
 
     try {
         const response = await fetch(url, config);
