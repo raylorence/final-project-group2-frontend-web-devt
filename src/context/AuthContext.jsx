@@ -54,6 +54,22 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
+
+    // Listen for unauthorized 401 events (e.g. user deleted / token invalid)
+    const handleUnauthorized = () => {
+      setToken(null);
+      setUser(null);
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("auth:unauthorized", handleUnauthorized);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("auth:unauthorized", handleUnauthorized);
+      }
+    };
   }, []);
 
   /**

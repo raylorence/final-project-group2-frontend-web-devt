@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GameCanvas from "../game/GameCanvas.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -11,13 +11,19 @@ import { submitScore } from "../api/scoreApi.js";
  * Upon Game Over, handles automatic score submission to MongoDB via `submitScore` caller (`POST /api/scores`).
  */
 export default function Game() {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [gameKey, setGameKey] = useState(0);
   const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === "admin") {
+      navigate("/admin", { replace: true });
+    }
+  }, [user, navigate]);
 
   /**
    * Invoked when player health reaches 0 (Game Over)
@@ -27,8 +33,8 @@ export default function Game() {
       setResult(matchResult);
       setPaused(true);
 
-      // If user is not logged in, skip backend submission
-      if (!token) return;
+      // If user is not logged in or is an admin, skip backend submission
+      if (!token || user?.role === "admin") return;
 
       setSubmitting(true);
       setError("");
@@ -42,7 +48,7 @@ export default function Game() {
         setSubmitting(false);
       }
     },
-    [token]
+    [token, user]
   );
 
   /**

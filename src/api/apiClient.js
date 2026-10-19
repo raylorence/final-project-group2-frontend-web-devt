@@ -184,6 +184,18 @@ export const apiRequest = async (endpoint, options = {}) => {
 
         // Handle non-2xx HTTP responses gracefully
         if (!response.ok) {
+            // Automatically clear invalidated/expired authentication tokens on 401 Unauthorized
+            if (response.status === 401) {
+                removeToken();
+                removeStoredUser();
+                if (typeof sessionStorage !== 'undefined') {
+                    sessionStorage.removeItem('hk_session');
+                }
+                if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+                    window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { endpoint, responseData } }));
+                }
+            }
+
             const errorMessage = (responseData && responseData.message)
                 || (responseData && typeof responseData === 'string' ? responseData : null)
                 || `Request failed with status ${response.status}`;
