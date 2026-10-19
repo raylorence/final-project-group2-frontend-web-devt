@@ -6,7 +6,11 @@ export default function GameCanvas({ onGameOver, paused = false }) {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
   const keysRef = useRef(new Set());
-  const mouseRef = useRef({ x: CANVAS_W / 2, y: CANVAS_H / 2 - 100 });
+  const mouseRef = useRef({
+  x: CANVAS_W / 2,
+  y: CANVAS_H / 2 - 100,
+  shooting: false,
+});
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
   const pausedRef = useRef(paused);
@@ -48,29 +52,47 @@ export default function GameCanvas({ onGameOver, paused = false }) {
       keysRef.current.delete(e.key.toLowerCase());
     }
     function onMouseMove(e) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = CANVAS_W / rect.width;
-      const scaleY = CANVAS_H / rect.height;
-      mouseRef.current = {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY,
-      };
-    }
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CANVAS_W / rect.width;
+  const scaleY = CANVAS_H / rect.height;
+
+  mouseRef.current = {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY,
+    shooting: mouseRef.current.shooting,
+  };
+}
+
+function onMouseDown(e) {
+  if (e.button === 0) {
+    mouseRef.current.shooting = true;
+  }
+}
+
+function onMouseUp(e) {
+  if (e.button === 0) {
+    mouseRef.current.shooting = false;
+  }
+}
     function onBlur() {
       keysRef.current.clear();
     }
 
     window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    canvas.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("blur", onBlur);
+window.addEventListener("keyup", onKeyUp);
+canvas.addEventListener("mousemove", onMouseMove);
+canvas.addEventListener("mousedown", onMouseDown);
+window.addEventListener("mouseup", onMouseUp);
+window.addEventListener("blur", onBlur);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      canvas.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("blur", onBlur);
+window.removeEventListener("keyup", onKeyUp);
+canvas.removeEventListener("mousemove", onMouseMove);
+canvas.removeEventListener("mousedown", onMouseDown);
+window.removeEventListener("mouseup", onMouseUp);
+window.removeEventListener("blur", onBlur);
     };
   }, [onGameOver]);
 

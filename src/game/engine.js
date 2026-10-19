@@ -112,9 +112,14 @@ export function createEngine(onGameOver) {
     if (mouse) {
       p.aimAngle = Math.atan2(mouse.y - p.y, mouse.x - p.x);
     }
-    if (keys.has(" ") && now - p.lastShotAt >= PLAYER.fireCooldown) {
-      fire(now);
-    }
+    
+if (
+  (keys.has(" ") || mouse?.shooting) &&
+  now - p.lastShotAt >= PLAYER.fireCooldown
+) {
+  fire(now);
+}
+
   }
 
   function fire(now) {
