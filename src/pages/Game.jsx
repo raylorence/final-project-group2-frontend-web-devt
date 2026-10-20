@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { submitScore } from "../api/scoreApi.js";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import { toggleMute, getMuteState } from "../game/sound.js";
-
+import { useEffect } from "react";
 
 export default function Game() {
     const { token } = useAuth();
@@ -60,6 +60,21 @@ export default function Game() {
     };
 
     const isRunning = !result;
+
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            // Only prompt if the match is actively in progress
+            if (isRunning) {
+                e.preventDefault();
+                e.returnValue = ""; // Standard browser requirement to trigger reload confirmation
+            }
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, [isRunning]);
 
     return (
         <div className="container" style={{ marginTop: 0, paddingTop: 10 }}>
