@@ -263,22 +263,28 @@ export function createEngine(onGameOver) {
 
   function handleInput(keys, delta, now) {
     if (!state.alive) return;
+    const dt = delta / 1000;
     const p = state.player;
 
-    const dir = resolveDirection(keys.has("w"), keys.has("s"), keys.has("a"), keys.has("d"));
+    const moveDir = resolveDirection(
+        keys.has("w"),
+        keys.has("s"),
+        keys.has("a"),
+        keys.has("d")
+    );
 
-    if (dir) {
-      p.facingX = dir.dx;
-      p.facingY = dir.dy;
-      p.aimAngle = dir.angle;
+    if (moveDir) {
+      p.facingX = moveDir.dx;
+      p.facingY = moveDir.dy;
+      p.aimAngle = moveDir.angle;
 
-      const len = Math.hypot(dir.dx, dir.dy);
+      const len = Math.hypot(moveDir.dx, moveDir.dy);
       const step = PLAYER.speed * (delta / 1000);
 
       const moved = tryMoveCircle(
           p.x, p.y, p.size / 2,
-          (dir.dx / len) * step,
-          (dir.dy / len) * step
+          (moveDir.dx / len) * step,
+          (moveDir.dy / len) * step
       );
 
       p.x = Math.max(p.size / 2, Math.min(WORLD_W - p.size / 2, moved.x));
@@ -391,6 +397,7 @@ export function createEngine(onGameOver) {
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
 
+
       // Failsafe for enemies stuck in the top HUD zone
       if (e.y - e.size / 2 < HUD_HEIGHT) {
         e.y = HUD_HEIGHT + e.size / 2 + 2;
@@ -426,6 +433,7 @@ export function createEngine(onGameOver) {
       if (now > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
         p.health = Math.max(0, p.health - e.damage);
         p.invulnUntil = now + PLAYER.invulnMs;
+        state.screenShake = 14;
         explode(p.x, p.y, "#f85149", 12);
         state.enemies.splice(i, 1);
 
@@ -464,6 +472,7 @@ export function createEngine(onGameOver) {
 
           if (e.hp <= 0) {
             state.score += e.points;
+            state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
             explode(e.x, e.y, e.color, 8); // Reduced particles
             if (e.type === "splitter" && e.size > 14) {
               spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
