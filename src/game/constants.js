@@ -26,7 +26,7 @@ export const ENEMY_TYPES = {
     speed: 55,         
     hp: 1,
     damage: 10,
-    color: "#f85149",
+    color: "#ffd60a",
     points: 1,
     spawnWeight: 6,
   },
