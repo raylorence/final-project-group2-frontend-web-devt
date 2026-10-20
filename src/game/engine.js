@@ -467,6 +467,8 @@ export function createEngine(onGameOver) {
             });
           }
           return;
+        } else {
+
         }
         continue;
       }
@@ -491,11 +493,15 @@ export function createEngine(onGameOver) {
             state.score += e.points;
             state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
             explode(e.x, e.y, e.color, 8); // Reduced particles
+
+
             if (e.type === "splitter" && e.size > 14) {
               spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
               spawnEnemy("splitter", e.x + 10, e.y, e.size * 0.6, 1);
             }
             state.enemies.splice(ei, 1);
+          } else {
+
           }
           break; // Bullet is consumed, stop checking other enemies
         }
@@ -646,6 +652,22 @@ export function createEngine(onGameOver) {
     ctx.restore();
 
     ctx.restore(); // End Camera
+
+    // --- LOW HEALTH VIGNETTE ---
+    if (state.alive && p.health <= 35) {
+      // Oscillates smoothly between 0 and 1 using elapsed game time
+      const pulse = (Math.sin(state.elapsed * 0.008) + 1) * 0.5;
+
+      const vigGrad = ctx.createRadialGradient(
+          CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.25,
+          CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.62
+      );
+      vigGrad.addColorStop(0, "rgba(248, 81, 73, 0)");
+      vigGrad.addColorStop(1, `rgba(248, 81, 73, ${0.12 + pulse * 0.28})`);
+
+      ctx.fillStyle = vigGrad;
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    }
 
     // --- DRAW HUD ---
     ctx.fillStyle = "#0d1117";
