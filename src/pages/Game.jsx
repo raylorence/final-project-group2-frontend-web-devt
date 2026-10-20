@@ -6,7 +6,7 @@ import { submitScore } from "../api/scoreApi.js";
 
 /**
  * Game Page Component
- * 
+ *
  * Runs the survival arena game loop on Canvas.
  * Upon Game Over, handles automatic score submission to MongoDB via `submitScore` caller (`POST /api/scores`).
  */
@@ -31,7 +31,7 @@ export default function Game() {
   const handleGameOver = useCallback(
     async (matchResult) => {
       setResult(matchResult);
-      setPaused(true);
+      setPaused(false); // game over overlay takes over; pause is irrelevant
 
       // If user is not logged in or is an admin, skip backend submission
       if (!token || user?.role === "admin") return;
@@ -39,7 +39,6 @@ export default function Game() {
       setSubmitting(true);
       setError("");
       try {
-        // Send score and survival time to MongoDB backend via scoreApi caller
         await submitScore(matchResult.score, matchResult.survivalTime, token);
       } catch (err) {
         console.error("Score submission failed:", err);
@@ -52,6 +51,14 @@ export default function Game() {
   );
 
   /**
+   * Toggle pause. Disabled once the run is over.
+   */
+  const handleTogglePause = useCallback(() => {
+    if (result) return;
+    setPaused((p) => !p);
+  }, [result]);
+
+  /**
    * Reset game state and remount canvas for a new match run
    */
   function restart() {
@@ -61,15 +68,42 @@ export default function Game() {
     setGameKey((k) => k + 1); // Remount canvas to reset game engine
   }
 
+  const isRunning = !result;
+
   return (
-    <div className="container">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <h2>Huling Kapsula — Survival</h2>
-        <div className="muted">WASD / Arrows move · Hold Space to fire · Mouse aims</div>
+  <div className="container" style={{ marginTop: 0, paddingTop: 10 }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 10,
+        gap: 12,
+      }}
+    >
+      <h2 style={{ margin: 0 }}>Huling Kapsula — Survival</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div className="muted" style={{ fontSize: 13 }}>
+            WASD move · Spacebar shoot · Esc pause
+          </div>
+          <button
+            className="secondary"
+            onClick={handleTogglePause}
+            disabled={!isRunning}
+            style={{ minWidth: 90 }}
+          >
+            {paused ? "Resume" : "Pause"}
+          </button>
+        </div>
       </div>
 
       <div style={{ position: "relative" }}>
-        <GameCanvas key={gameKey} onGameOver={handleGameOver} paused={paused} />
+        <GameCanvas
+          key={gameKey}
+          onGameOver={handleGameOver}
+          onPause={handleTogglePause}
+          paused={paused}
+        />
 
         {result && (
           <div
@@ -84,6 +118,7 @@ export default function Game() {
               borderRadius: 10,
               textAlign: "center",
               padding: 24,
+              zIndex: 10,
             }}
           >
             <h1 style={{ fontSize: 42, color: "#f85149" }}>INFECTED</h1>

@@ -2,59 +2,82 @@ import { useEffect, useRef } from "react";
 import { CANVAS_W, CANVAS_H } from "./constants.js";
 import { createEngine } from "./engine.js";
 
-export default function GameCanvas({ onGameOver, paused = false }) {
+export default function GameCanvas({ onGameOver, onPause, paused = false }) {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
   const keysRef = useRef(new Set());
-  const mouseRef = useRef({ x: CANVAS_W / 2, y: CANVAS_H / 2 - 100 });
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
   const pausedRef = useRef(paused);
-  const gameOverFiredRef = useRef(false);
+  const frozenRef = useRef(false);   // set true the moment game over fires
+  const onGameOverRef = useRef(onGameOver);
+  const onPauseRef = useRef(onPause);
 
+  // Keep latest callbacks without re-running the main effect
+  useEffect(() => { onGameOverRef.current = onGameOver; }, [onGameOver]);
+  useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
+    frozenRef.current = false;
+
     engineRef.current = createEngine((result) => {
-      if (gameOverFiredRef.current) return;
-      gameOverFiredRef.current = true;
-      onGameOver(result);
+      if (frozenRef.current) return;
+      frozenRef.current = true;
+
+      // Render one final frame so the corpse + HUD sit under the overlay
+      engineRef.current.draw(ctx);
+
+      // Notify React AFTER drawing, so the overlay appears over a frozen scene
+      if (onGameOverRef.current) onGameOverRef.current(result);
     });
-    gameOverFiredRef.current = false;
 
     function loop(t) {
       const delta = Math.min(50, t - lastTimeRef.current || 16);
       lastTimeRef.current = t;
-      if (!pausedRef.current && engineRef.current.isAlive()) {
-        engineRef.current.handleInput(keysRef.current, mouseRef.current, t);
+
+      // frozenRef is checked FIRST — once true, nothing updates ever again
+      if (!frozenRef.current && !pausedRef.current) {
+        engineRef.current.handleInput(keysRef.current, t);
         engineRef.current.update(delta, t);
       }
+
       engineRef.current.draw(ctx);
+
+      if (pausedRef.current && !frozenRef.current) {
+        ctx.fillStyle = "rgba(7, 11, 16, 0.65)";
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.fillStyle = "#4ec9b0";
+        ctx.font = "bold 44px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("PAUSED", CANVAS_W / 2, CANVAS_H / 2 - 10);
+        ctx.fillStyle = "#7d8590";
+        ctx.font = "16px system-ui";
+        ctx.fillText("Press Esc to resume", CANVAS_W / 2, CANVAS_H / 2 + 30);
+      }
+
       rafRef.current = requestAnimationFrame(loop);
     }
     rafRef.current = requestAnimationFrame(loop);
 
-    // ----- input listeners -----
     function onKeyDown(e) {
       const k = e.key.toLowerCase();
       if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
         e.preventDefault();
       }
+      if (k === "escape") {
+        e.preventDefault();
+        if (frozenRef.current) return;
+        if (onPauseRef.current) onPauseRef.current();
+        return;
+      }
+      if (frozenRef.current) return;   // dead players can't move
       keysRef.current.add(k);
     }
     function onKeyUp(e) {
       keysRef.current.delete(e.key.toLowerCase());
-    }
-    function onMouseMove(e) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = CANVAS_W / rect.width;
-      const scaleY = CANVAS_H / rect.height;
-      mouseRef.current = {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY,
-      };
     }
     function onBlur() {
       keysRef.current.clear();
@@ -62,17 +85,15 @@ export default function GameCanvas({ onGameOver, paused = false }) {
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
-    canvas.addEventListener("mousemove", onMouseMove);
     window.addEventListener("blur", onBlur);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
-      canvas.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("blur", onBlur);
     };
-  }, [onGameOver]);
+  }, []);  // <-- EMPTY deps: engine created exactly once per mount
 
   return (
     <canvas
@@ -86,8 +107,10 @@ export default function GameCanvas({ onGameOver, paused = false }) {
         border: "1px solid #30363d",
         display: "block",
         margin: "0 auto",
-        cursor: "crosshair",
+        cursor: "default",
+        outline: "none",
       }}
+      tabIndex={0}
     />
   );
 }

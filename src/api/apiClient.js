@@ -1,6 +1,6 @@
 /**
  * Frontend API Configuration and Base Fetch Utility
- * 
+ *
  * This module manages:
  * 1. Base URL configuration (from Vite environment or fallback to localhost:5000)
  * 2. Token storage (persisted in localStorage with in-memory fallback)
@@ -128,7 +128,7 @@ export const removeStoredUser = () => {
  * - JWT Authorization header insertion (if authenticated or token provided)
  * - JSON body serialization
  * - Unified HTTP error parsing
- * 
+ *
  * @param {string} endpoint - API endpoint path (e.g. '/api/auth/login')
  * @param {object} options - Fetch options (method, headers, body, requiresAuth, token, etc.)
  * @returns {Promise<any>} Parsed response data from server
@@ -177,7 +177,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     try {
         const response = await fetch(url, config);
-        
+
         let responseData;
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -203,7 +203,7 @@ export const apiRequest = async (endpoint, options = {}) => {
             const errorMessage = (responseData && responseData.message)
                 || (responseData && typeof responseData === 'string' ? responseData : null)
                 || `Request failed with status ${response.status}`;
-                
+
             const error = new Error(errorMessage);
             error.status = response.status;
             error.data = responseData;
