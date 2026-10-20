@@ -311,8 +311,15 @@ code {
   border-top: 3px solid var(--olive-dark);
 }
 
-.auth-wrapper .card::before {
+/* Login page */
+.auth-wrapper:has(a[href*="register"]) .card::before {
   content: 'AUTHORIZED PERSONNEL ONLY';
+  color: var(--orange);
+}
+
+/* Registration page */
+.auth-wrapper:has(a[href*="login"]) .card::before {
+  content: 'NEW PERSONNEL // ENROLLMENT';
   color: var(--orange);
 }
 
