@@ -26,6 +26,16 @@ export const getUsers = async (token = null) => {
     return [];
 };
 
+export const getAllScores = async (token = null) => {
+    const data = await apiRequest('/api/admin/scores', {
+        method: 'GET',
+        requiresAuth: true,
+        token
+    });
+    return Array.isArray(data) ? data : (data?.data || []);
+};
+
+
 /**
  * Delete a user account and cascade delete all associated scores (Admin only)
  * @param {string} userId - MongoDB ID of user to delete

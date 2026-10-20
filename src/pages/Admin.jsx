@@ -25,7 +25,7 @@ export default function Admin() {
     try {
       const [userList, scoreList] = await Promise.all([
         getUsers(token),
-        getLeaderboard()
+        getAllScores(token) // Uses the unlimited admin score fetcher
       ]);
 
       const parsedUsers = Array.isArray(userList) ? userList : (userList?.data || userList?.users || []);
