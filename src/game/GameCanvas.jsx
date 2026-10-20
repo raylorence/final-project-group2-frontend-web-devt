@@ -40,23 +40,12 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
 
       // frozenRef is checked FIRST — once true, nothing updates ever again
       if (!frozenRef.current && !pausedRef.current) {
-        engineRef.current.handleInput(keysRef.current, t);
+        engineRef.current.handleInput(keysRef.current, delta, t);
         engineRef.current.update(delta, t);
       }
 
-      engineRef.current.draw(ctx);
+      engineRef.current.draw(ctx, pausedRef.current);
 
-      if (pausedRef.current && !frozenRef.current) {
-        ctx.fillStyle = "rgba(7, 11, 16, 0.65)";
-        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.fillStyle = "#4ec9b0";
-        ctx.font = "bold 44px system-ui";
-        ctx.textAlign = "center";
-        ctx.fillText("PAUSED", CANVAS_W / 2, CANVAS_H / 2 - 10);
-        ctx.fillStyle = "#7d8590";
-        ctx.font = "16px system-ui";
-        ctx.fillText("Press Esc to resume", CANVAS_W / 2, CANVAS_H / 2 + 30);
-      }
 
       rafRef.current = requestAnimationFrame(loop);
     }

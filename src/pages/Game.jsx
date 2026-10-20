@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import GameCanvas from "../game/GameCanvas.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { submitScore } from "../api/scoreApi.js";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 
 /**
  * Game Page Component
@@ -11,62 +12,59 @@ import { submitScore } from "../api/scoreApi.js";
  * Upon Game Over, handles automatic score submission to MongoDB via `submitScore` caller (`POST /api/scores`).
  */
 export default function Game() {
-  const { user, token } = useAuth();
-  const navigate = useNavigate();
-  const [result, setResult] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [gameKey, setGameKey] = useState(0);
-  const [paused, setPaused] = useState(false);
+    const { token } = useAuth();
+    const navigate = useNavigate();
+    const [result, setResult] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState("");
+    const [gameKey, setGameKey] = useState(0);
+    const [paused, setPaused] = useState(false);
 
-  useEffect(() => {
-    if (user?.role === "admin") {
-      navigate("/admin", { replace: true });
-    }
-  }, [user, navigate]);
-
+    // State to track which path the user is trying to navigate to
+    const [pendingNav, setPendingNav] = useState(null);
   /**
    * Invoked when player health reaches 0 (Game Over)
    */
   const handleGameOver = useCallback(
-    async (matchResult) => {
-      setResult(matchResult);
-      setPaused(false); // game over overlay takes over; pause is irrelevant
-
-      // If user is not logged in or is an admin, skip backend submission
-      if (!token || user?.role === "admin") return;
-
-      setSubmitting(true);
-      setError("");
-      try {
-        await submitScore(matchResult.score, matchResult.survivalTime, token);
-      } catch (err) {
-        console.error("Score submission failed:", err);
-        setError(err.message || "Failed to submit score to leaderboard");
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [token, user]
+      async (matchResult) => {
+          setResult(matchResult);
+          setPaused(false);
+          if (!token) return;
+          setSubmitting(true);
+          setError("");
+          try {
+              await submitScore(matchResult.score, matchResult.survivalTime, token);
+          } catch (err) {
+              console.error("Score submission failed:", err);
+              setError(err.message || "Failed to submit score to leaderboard");
+          } finally {
+              setSubmitting(false);
+          }
+      },
+      [token]
   );
 
   /**
    * Toggle pause. Disabled once the run is over.
    */
   const handleTogglePause = useCallback(() => {
-    if (result) return;
-    setPaused((p) => !p);
+      if (result) return;
+      setPaused((p) => !p);
   }, [result]);
 
   /**
    * Reset game state and remount canvas for a new match run
    */
   function restart() {
-    setResult(null);
-    setError("");
-    setPaused(false);
-    setGameKey((k) => k + 1); // Remount canvas to reset game engine
+      setResult(null);
+      setError("");
+      setPaused(false);
+      setGameKey((k) => k + 1);
   }
+  // Navigation execution after modal confirmation
+    const executeNavigation = () => {
+        if (pendingNav) navigate(pendingNav);
+    };
 
   const isRunning = !result;
 
@@ -105,6 +103,23 @@ export default function Game() {
           paused={paused}
         />
 
+          {/* NEW: React DOM Pause Menu Overlay */}
+          {paused && isRunning && !pendingNav && (
+              <div style={{
+                  position: "absolute", inset: 0, background: "rgba(7, 11, 16, 0.75)",
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  justifyContent: "center", borderRadius: 10, zIndex: 10, backdropFilter: "blur(2px)"
+              }}>
+                  <h1 style={{ fontSize: 44, color: "#4ec9b0", marginBottom: 10 }}>PAUSED</h1>
+                  <p className="muted" style={{ marginBottom: 30 }}>Press Esc or click Resume</p>
+                  <div style={{ display: "flex", gap: 12 }}>
+                      <button onClick={handleTogglePause}>Resume Game</button>
+                      <button className="secondary" onClick={() => setPendingNav("/menu")}>Main Menu</button>
+                      <button className="secondary" onClick={() => setPendingNav("/leaderboard")}>Leaderboard</button>
+                  </div>
+              </div>
+          )}
+
         {result && (
           <div
             style={{
@@ -139,6 +154,15 @@ export default function Game() {
           </div>
         )}
       </div>
+
+      {/* Confirm Modal for active game exits */}
+      <ConfirmModal
+          isOpen={!!pendingNav}
+          message="Are you sure you want to exit? Your current run will be lost."
+          onConfirm={executeNavigation}
+          onCancel={() => setPendingNav(null)}
+      />
+
     </div>
   );
 }
