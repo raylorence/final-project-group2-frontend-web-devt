@@ -225,6 +225,8 @@ export function createEngine(onGameOver) {
       points: t.points,
       type: typeName,
       wobble: Math.random() * Math.PI * 2,
+      aiCooldown: 0,
+      currentDir: null
     });
   }
 
@@ -384,18 +386,29 @@ export function createEngine(onGameOver) {
       }
     }
 
-    // Enemies
+// Enemies
     const p = state.player;
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
 
-      // FIX: Failsafe for enemies stuck in the top HUD zone
-      // If they are inside the HUD, teleport them down into the playable area
+      // Failsafe for enemies stuck in the top HUD zone
       if (e.y - e.size / 2 < HUD_HEIGHT) {
         e.y = HUD_HEIGHT + e.size / 2 + 2;
       }
 
-      const dir = pickEnemyDirection(e, p);
+      // AI Reaction Time Logic
+      e.aiCooldown -= dt;
+      if (e.aiCooldown <= 0 || !e.currentDir) {
+        e.currentDir = pickEnemyDirection(e, p);
+
+        // Set the reaction delay based on enemy type.
+        // Fast enemies react in 0.15s, tanks take 0.5s to turn.
+        if (e.type === "fast") e.aiCooldown = 0.15;
+        else if (e.type === "tank") e.aiCooldown = 0.50;
+        else e.aiCooldown = 0.30;
+      }
+
+      const dir = e.currentDir; // Use the stored direction instead of recalculating
       const step = e.speed * dt;
       const len = (dir.dx !== 0 && dir.dy !== 0) ? 1.414 : 1;
 
@@ -408,7 +421,6 @@ export function createEngine(onGameOver) {
       e.x = moved.x;
       e.y = moved.y;
       e.wobble += dt * 6;
-
       // Use squared distance for collision check (fast)
       const hitRadius = (e.size / 2 + p.size / 2);
       if (now > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
