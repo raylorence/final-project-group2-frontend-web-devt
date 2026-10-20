@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { getUsers, deleteUser, deleteScore } from "../api/adminApi.js";
-import { getLeaderboard } from "../api/scoreApi.js";
+import { getUsers, getAllScores, deleteUser, deleteScore } from "../api/adminApi.js";
 
 /**
  * Admin Dashboard Component
