@@ -1,3 +1,5 @@
+import { initAudio, playSound } from "./audio.js";
+
 import {
   CANVAS_W, CANVAS_H, WORLD_W, WORLD_H, HUD_HEIGHT,
   PLAYER, BULLET, ENEMY_TYPES, DIFFICULTY, DIRECTIONS, MAPS,
@@ -59,6 +61,8 @@ export function createEngine(onGameOver) {
   }
 
   function reset() {
+    initAudio();
+
     const map = pickMap();
 
     state = {
@@ -293,6 +297,7 @@ export function createEngine(onGameOver) {
   function fire(now) {
     const p = state.player;
     p.lastShotAt = now;
+    playSound("shoot");
     const muzzle = p.size / 2 + BULLET.size / 2;
     const dirX = p.facingX;
     const dirY = p.facingY;
@@ -426,12 +431,14 @@ export function createEngine(onGameOver) {
       if (now > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
         p.health = Math.max(0, p.health - e.damage);
         p.invulnUntil = now + PLAYER.invulnMs;
+        playSound("hurt");
         explode(p.x, p.y, "#f85149", 12);
         state.enemies.splice(i, 1);
 
         if (p.health <= 0) {
           state.alive = false;
           state.screenShake = 0;
+          playSound("gameover");
           explode(p.x, p.y, "#4ec9b0", 40);
 
           if (!state.gameOverFired) {
@@ -459,6 +466,7 @@ export function createEngine(onGameOver) {
 
         if (distSq(b.x, b.y, e.x, e.y) < totalRadius * totalRadius) {
           e.hp -= b.damage;
+          playSound("hit");
           explode(b.x, b.y, e.color, 2); // Reduced particles
           consumed = true;
 

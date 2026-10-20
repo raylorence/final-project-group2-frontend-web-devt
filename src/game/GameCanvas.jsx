@@ -52,6 +52,11 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
     rafRef.current = requestAnimationFrame(loop);
 
     function onKeyDown(e) {
+      if (window.AudioContext || window.webkitAudioContext) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+      }
+      
       const k = e.key.toLowerCase();
       if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
         e.preventDefault();
