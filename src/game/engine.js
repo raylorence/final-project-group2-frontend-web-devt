@@ -156,6 +156,51 @@ export function createEngine(onGameOver) {
     };
 
     updateCamera();
+
+    // Generate 35 slow-drifting plasma motes / red blood cells
+    const bgMotes = [];
+    for (let i = 0; i < 35; i++) {
+      bgMotes.push({
+        x: Math.random() * WORLD_W,
+        y: Math.random() * (WORLD_H - HUD_HEIGHT) + HUD_HEIGHT,
+        radius: 6 + Math.random() * 14,
+        vx: (Math.random() - 0.5) * 18,
+        vy: (Math.random() - 0.5) * 12,
+        alpha: 0.08 + Math.random() * 0.14,
+        color: Math.random() > 0.3 ? "#b82b3a" : "#7d1624",
+      });
+    }
+
+    state = {
+      mapName: map.name,
+      player: {
+        x: map.spawn.x,
+        y: Math.max(map.spawn.y, HUD_HEIGHT + 30),
+        size: PLAYER.size,
+        health: PLAYER.maxHealth,
+        invulnUntil: 0,
+        lastShotAt: -PLAYER.fireCooldown,
+        facingX: 0,
+        facingY: -1,
+        aimAngle: -Math.PI / 2,
+        muzzleFlash: 0, // <-- ADDED: Muzzle flash duration tracker
+      },
+      walls: map.walls.map((w) => ({ ...w })),
+      bullets: [],
+      enemies: [],
+      particles: [],
+      bgMotes,        // <-- ADDED: Microscopic depth motes
+      trailTimer: 0,  // <-- ADDED: Propulsion bubble throttle
+      score: 0,
+      elapsed: 0,
+      spawnAccum: 0,
+      spawnInterval: DIFFICULTY.initialSpawnMs,
+      alive: true,
+      screenShake: 0,
+      gameOverFired: false,
+      camera: { x: 0, y: 0 },
+    };
+
   }
 
   reset();
@@ -216,7 +261,16 @@ export function createEngine(onGameOver) {
 }
 
   function spawnEnemy(typeName, x, y, sizeOverride, hpOverride) {
-    const t = ENEMY_TYPES[typeName];
+
+    const t = ENEMY_TYPES[typeName] || {
+      size: 20,
+      speed: 45,
+      hp: 2,
+      damage: 15,
+      color: "#168BFF",
+      points: 2,
+    };
+
     let sx = x, sy = y;
     const size = sizeOverride ?? t.size;
 
@@ -294,7 +348,8 @@ export function createEngine(onGameOver) {
       type: typeName,
       wobble: Math.random() * Math.PI * 2,
       aiCooldown: 0,
-      currentDir: null
+      currentDir: null,
+      hitFlash: 0,
     });
   }
 
@@ -316,7 +371,6 @@ export function createEngine(onGameOver) {
     }
   }
 
-  // ---------- Input ----------
   function resolveDirection(up, down, left, right) {
     if (up && left) return DIRECTIONS.NW;
     if (up && right) return DIRECTIONS.NE;
@@ -329,6 +383,7 @@ export function createEngine(onGameOver) {
     return null;
   }
 
+  // ---------- Input ----------
   function handleInput(keys, delta, now) {
     if (!state.alive) return;
     const dt = delta / 1000;
@@ -357,8 +412,24 @@ export function createEngine(onGameOver) {
 
       p.x = Math.max(p.size / 2, Math.min(WORLD_W - p.size / 2, moved.x));
       p.y = Math.max(HUD_HEIGHT + p.size / 2, Math.min(WORLD_H - p.size / 2, moved.y));
-    }
 
+      // Bubble trail must be INSIDE if (moveDir) so moveDir and len exist
+      state.trailTimer = (state.trailTimer || 0) + delta;
+      if (state.trailTimer >= 60) {
+        state.trailTimer = 0;
+        const rearDist = p.size / 2 + 3;
+        state.particles.push({
+          x: p.x - (moveDir.dx / len) * rearDist + (Math.random() - 0.5) * 4,
+          y: p.y - (moveDir.dy / len) * rearDist + (Math.random() - 0.5) * 4,
+          vx: -(moveDir.dx / len) * 20 + (Math.random() - 0.5) * 15,
+          vy: -(moveDir.dy / len) * 20 + (Math.random() - 0.5) * 15,
+          life: 200,
+          maxLife: 200,
+          color: "rgba(78, 201, 176, 0.7)",
+          size: 2,
+        });
+      }
+    }
 
     const wantsToShoot = keys.has(" ");
     if (wantsToShoot && state.elapsed - p.lastShotAt >= PLAYER.fireCooldown) {
@@ -369,20 +440,42 @@ export function createEngine(onGameOver) {
   function fire() {
     const p = state.player;
     p.lastShotAt = state.elapsed;
+    p.muzzleFlash = 40;
+
     const muzzle = p.size / 2 + BULLET.size / 2;
     const dirX = p.facingX;
     const dirY = p.facingY;
     const len = Math.hypot(dirX, dirY) || 1;
 
+    // Define tipX and tipY so the particle loop can access them
+    const tipX = p.x + (dirX / len) * muzzle;
+    const tipY = p.y + (dirY / len) * muzzle;
+
     state.bullets.push({
-      x: p.x + (dirX / len) * muzzle,
-      y: p.y + (dirY / len) * muzzle,
+      x: tipX,
+      y: tipY,
       vx: (dirX / len) * BULLET.speed,
       vy: (dirY / len) * BULLET.speed,
       size: BULLET.size,
       damage: BULLET.damage,
       age: 0,
     });
+
+    // 3-4 short-lived cyan/white spark particles at nozzle tip
+    for (let k = 0; k < 4; k++) {
+      const spread = (Math.random() - 0.5) * 1.2;
+      const spd = 40 + Math.random() * 80;
+      state.particles.push({
+        x: tipX,
+        y: tipY,
+        vx: (dirX / len) * spd + Math.cos(spread) * 25,
+        vy: (dirY / len) * spd + Math.sin(spread) * 25,
+        life: 100,
+        maxLife: 100,
+        color: k % 2 === 0 ? "#ffffff" : "#a5f3e0",
+        size: 2.5,
+      });
+    }
   }
 
   // ---------- AI (Optimized) ----------
@@ -444,6 +537,24 @@ export function createEngine(onGameOver) {
     const dt = delta / 1000;
     state.elapsed += delta;
 
+    // Decay player muzzle flash
+    if (state.player.muzzleFlash > 0) {
+      state.player.muzzleFlash = Math.max(0, state.player.muzzleFlash - delta);
+    }
+
+    // Drift background blood motes across world
+    for (let m = 0; m < state.bgMotes.length; m++) {
+      const mote = state.bgMotes[m];
+      mote.x += mote.vx * dt;
+      mote.y += mote.vy * dt;
+      if (mote.x < -30) mote.x = WORLD_W + 30;
+      if (mote.x > WORLD_W + 30) mote.x = -30;
+      if (mote.y < HUD_HEIGHT) mote.y = WORLD_H + 20;
+      if (mote.y > WORLD_H + 20) mote.y = HUD_HEIGHT;
+    }
+
+
+
     updateCamera();
 
     // Bullets
@@ -481,6 +592,11 @@ export function createEngine(onGameOver) {
     const p = state.player;
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
+
+      // Draw hit flash overlay
+      if (e.hitFlash > 0) {
+        e.hitFlash = Math.max(0, e.hitFlash - delta);
+      }
 
 
       // Failsafe for enemies stuck in the top HUD zone
@@ -557,6 +673,17 @@ export function createEngine(onGameOver) {
           explode(b.x, b.y, e.color, 2); // Reduced particles
           consumed = true;
 
+          // 60ms Hit-Flash & 3px Knockback on tank or splitter ---
+          if (e.type === "tank" || e.type === "splitter") {
+            e.hitFlash = 60;
+            const bLen = Math.hypot(b.vx, b.vy) || 1;
+            const kx = (b.vx / bLen) * 3;
+            const ky = (b.vy / bLen) * 3;
+            const kb = tryMoveCircle(e.x, e.y, e.size / 2, kx, ky);
+            e.x = kb.x;
+            e.y = kb.y;
+          }
+
           if (e.hp <= 0) {
             state.score += e.points;
             state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
@@ -618,6 +745,17 @@ export function createEngine(onGameOver) {
 
     ctx.fillStyle = bloodFloor;
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+    // Drifting blood cells / plasma motes ---
+    for (let m = 0; m < state.bgMotes.length; m++) {
+      const mote = state.bgMotes[m];
+      ctx.fillStyle = mote.color;
+      ctx.globalAlpha = mote.alpha;
+      ctx.beginPath();
+      ctx.arc(mote.x, mote.y, mote.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
 
     // Subtle organic tissue texture
     for (let i = 0; i < 100; i++) {
@@ -712,19 +850,33 @@ export function createEngine(onGameOver) {
     }
 
 
-    // Walls
+    // Organic Tissue Walls (Rounded Vascular Structures)
     for (let i = 0; i < state.walls.length; i++) {
       const w = state.walls[i];
-      ctx.fillStyle = "rgba(0,0,0,0.4)";
-      ctx.fillRect(w.x + 3, w.y + 3, w.w, w.h);
-      ctx.fillStyle = "#2b3440";
-      ctx.fillRect(w.x, w.y, w.w, w.h);
-      ctx.strokeStyle = "#4a5664";
+
+      // Soft drop shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.beginPath();
+      ctx.roundRect(w.x + 4, w.y + 4, w.w, w.h, 12);
+      ctx.fill();
+
+      // Deep vascular crimson/violet interior
+      ctx.fillStyle = "#2a121e";
+      ctx.beginPath();
+      ctx.roundRect(w.x, w.y, w.w, w.h, 12);
+      ctx.fill();
+
+      // Outer bioluminescent membrane border
+      ctx.strokeStyle = "#f85149";
       ctx.lineWidth = 2;
-      ctx.strokeRect(w.x + 1, w.y + 1, w.w - 2, w.h - 2);
-      ctx.strokeStyle = "rgba(78, 201, 176, 0.15)";
+      ctx.stroke();
+
+      // Subtle inner bio-cyan rim
+      ctx.strokeStyle = "rgba(78, 201, 176, 0.3)";
       ctx.lineWidth = 1;
-      ctx.strokeRect(w.x + 4, w.y + 4, w.w - 8, w.h - 8);
+      ctx.beginPath();
+      ctx.roundRect(w.x + 2, w.y + 2, w.w - 4, w.h - 4, 10);
+      ctx.stroke();
     }
 
     // Particles
@@ -743,6 +895,14 @@ export function createEngine(onGameOver) {
 
       ctx.save();
       ctx.translate(e.x, e.y);
+
+      // Render white hit-flash circle if active
+      if (e.hitFlash > 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.beginPath();
+        ctx.arc(0, 0, e.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       if (e.type === "worm") {
         const phase = state.elapsed * 0.012 + e.wobble;
@@ -856,6 +1016,7 @@ export function createEngine(onGameOver) {
 
     // Player
     const p = state.player;
+    const r = p.size / 2;
     let visible = true;
     if (p.invulnUntil > state.elapsed) {
       const remaining = p.invulnUntil - state.elapsed;
@@ -883,6 +1044,18 @@ export function createEngine(onGameOver) {
       ctx.fillRect(-2.5, -r - 7, 5, 10);
       ctx.shadowBlur = 0;
     }
+
+    // --- 40ms glowing muzzle flash arc ---
+    if (p.muzzleFlash > 0) {
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = "#a5f3e0";
+      ctx.shadowBlur = 18;
+      ctx.beginPath();
+      ctx.arc(0, -r - 8, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
     ctx.restore();
 
     ctx.restore(); // End Camera
