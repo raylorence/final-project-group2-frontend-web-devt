@@ -26,7 +26,7 @@ export const ENEMY_TYPES = {
     speed: 55,         
     hp: 1,
     damage: 10,
-    color: "#f85149",
+    color: "#ffd60a",
     points: 1,
     spawnWeight: 6,
   },
@@ -47,6 +47,15 @@ export const ENEMY_TYPES = {
     color: "#3fb950",
     points: 2,
     spawnWeight: 2,
+  },
+    worm: {
+      size: 22,
+      speed: 75,
+      hp: 2,
+      damage: 8,
+      color: "#168BFF",
+      points: 15,
+      spawnWeight: 2,
   },
 };
 

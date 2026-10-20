@@ -77,6 +77,13 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
       unlockAudio();
       
       const k = e.key.toLowerCase();
+
+      // Prevent accidental reload keys during gameplay
+      if (k === "f5" || ((e.ctrlKey || e.metaKey) && k === "r")) {
+        e.preventDefault();
+        return;
+      }
+
       if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
         e.preventDefault();
       }
