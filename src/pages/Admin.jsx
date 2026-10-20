@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getUsers, getAllScores, deleteUser, deleteScore } from "../api/adminApi.js";
 import ConfirmModal from "../components/ConfirmModal.jsx";
@@ -9,6 +9,10 @@ export default function Admin() {
   const [scores, setScores] = useState([]);
   const [error, setError] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
+
+  // Search input states
+  const [userSearch, setUserSearch] = useState("");
+  const [scoreSearch, setScoreSearch] = useState("");
 
   async function refresh() {
     try {
@@ -44,83 +48,195 @@ export default function Admin() {
     }
   };
 
+  // Real-time filtered lists
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return users;
+    const q = userSearch.toLowerCase().trim();
+    return users.filter((u) => u.username?.toLowerCase().includes(q));
+  }, [users, userSearch]);
+
+  const filteredScores = useMemo(() => {
+    if (!scoreSearch.trim()) return scores;
+    const q = scoreSearch.toLowerCase().trim();
+    return scores.filter((s) => {
+      const name = (s.player?.username || s.username || "").toLowerCase();
+      return name.includes(q);
+    });
+  }, [scores, scoreSearch]);
+
   return (
       <div className="container">
         <h2>Admin Dashboard</h2>
         {error && <p className="error">{error}</p>}
 
+        {/* Players Moderation Card */}
         <div className="card">
-          <h3>Players ({users.length})</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #30363d" }}>
-              <th style={{ padding: 10 }}>Username</th>
-              <th style={{ padding: 10 }}>Role</th>
-              <th style={{ padding: 10 }}></th>
-            </tr>
-            </thead>
-            <tbody>
-            {users.map((u) => (
-                <tr key={u._id} style={{ borderBottom: "1px solid #21262d" }}>
-                  <td style={{ padding: 10 }}>{u.username}</td>
-                  <td style={{ padding: 10 }} className="muted">{u.role}</td>
-                  <td style={{ padding: 10, textAlign: "right" }}>
-                    {u.role !== "admin" && (
-                        <button
-                            className="danger"
-                            onClick={() => setPendingAction({
-                              type: "user",
-                              id: u._id,
-                              message: `Permanently delete user "${u.username}" and all their recorded scores?`
-                            })}
-                        >
-                          Delete
-                        </button>
-                    )}
-                  </td>
-                </tr>
-            ))}
-            </tbody>
-          </table>
+          <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 12,
+                marginBottom: 14,
+              }}
+          >
+            <h3 style={{ margin: 0 }}>
+              Players ({filteredUsers.length}
+              {userSearch ? ` / ${users.length}` : ""})
+            </h3>
+            <input
+                type="text"
+                placeholder="Search players..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                style={{
+                  maxWidth: 240,
+                  margin: 0,
+                  padding: "7px 12px",
+                  fontSize: 13,
+                }}
+            />
+          </div>
+
+          <div style={{ maxHeight: "500px", overflowY: "auto" }}>
+            {filteredUsers.length === 0 ? (
+                <p className="muted">No players found matching "{userSearch}".</p>
+            ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                  <tr
+                      style={{
+                        textAlign: "left",
+                        borderBottom: "1px solid #30363d",
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 2,
+                        background: "var(--panel, #1a1c15)",
+                      }}
+                  >
+                    <th style={{ padding: 10 }}>Username</th>
+                    <th style={{ padding: 10 }}>Role</th>
+                    <th style={{ padding: 10 }}></th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {filteredUsers.map((u) => (
+                      <tr key={u._id} style={{ borderBottom: "1px solid #21262d" }}>
+                        <td style={{ padding: 10 }}>{u.username}</td>
+                        <td style={{ padding: 10 }} className="muted">{u.role}</td>
+                        <td style={{ padding: 10, textAlign: "right" }}>
+                          {u.role !== "admin" && (
+                              <button
+                                  className="danger"
+                                  onClick={() =>
+                                      setPendingAction({
+                                        type: "user",
+                                        id: u._id,
+                                        message: `Permanently delete user "${u.username}" and all their recorded scores?`,
+                                      })
+                                  }
+                              >
+                                Delete
+                              </button>
+                          )}
+                        </td>
+                      </tr>
+                  ))}
+                  </tbody>
+                </table>
+            )}
+          </div>
         </div>
 
+        {/* Scores Moderation Card */}
         <div className="card">
-          <h3>Scores ({scores.length})</h3>
-          {scores.length === 0 ? (
-              <p className="muted">No scores recorded.</p>
-          ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                <tr style={{ textAlign: "left", borderBottom: "1px solid #30363d" }}>
-                  <th style={{ padding: 10 }}>Player</th>
-                  <th style={{ padding: 10 }}>Kills</th>
-                  <th style={{ padding: 10 }}>Survived</th>
-                  <th style={{ padding: 10 }}></th>
-                </tr>
-                </thead>
-                <tbody>
-                {scores.map((s) => (
-                    <tr key={s._id} style={{ borderBottom: "1px solid #21262d" }}>
-                      <td style={{ padding: 10 }}>{s.player?.username || s.username || "unknown"}</td>
-                      <td style={{ padding: 10, fontWeight: 700 }}>{s.totalScore ?? s.score ?? 0}</td>
-                      <td style={{ padding: 10 }} className="muted">{s.survivalTime ?? 0}s</td>
-                      <td style={{ padding: 10, textAlign: "right" }}>
-                        <button
-                            className="danger"
-                            onClick={() => setPendingAction({
-                              type: "score",
-                              id: s._id,
-                              message: `Delete score record (${s.totalScore ?? 0} kills) for ${s.player?.username || "this user"}?`
-                            })}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                ))}
-                </tbody>
-              </table>
-          )}
+          <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 12,
+                marginBottom: 14,
+              }}
+          >
+            <h3 style={{ margin: 0 }}>
+              Scores ({filteredScores.length}
+              {scoreSearch ? ` / ${scores.length}` : ""})
+            </h3>
+            <input
+                type="text"
+                placeholder="Search score records..."
+                value={scoreSearch}
+                onChange={(e) => setScoreSearch(e.target.value)}
+                style={{
+                  maxWidth: 240,
+                  margin: 0,
+                  padding: "7px 12px",
+                  fontSize: 13,
+                }}
+            />
+          </div>
+
+          <div style={{ maxHeight: "500px", overflowY: "auto" }}>
+            {filteredScores.length === 0 ? (
+                <p className="muted">
+                  {scoreSearch ? `No scores found matching "${scoreSearch}".` : "No scores recorded."}
+                </p>
+            ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                  <tr
+                      style={{
+                        textAlign: "left",
+                        borderBottom: "1px solid #30363d",
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 2,
+                        background: "var(--panel, #1a1c15)",
+                      }}
+                  >
+                    <th style={{ padding: 10 }}>Player</th>
+                    <th style={{ padding: 10 }}>Kills</th>
+                    <th style={{ padding: 10 }}>Survived</th>
+                    <th style={{ padding: 10 }}></th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {filteredScores.map((s) => (
+                      <tr key={s._id} style={{ borderBottom: "1px solid #21262d" }}>
+                        <td style={{ padding: 10 }}>
+                          {s.player?.username || s.username || "unknown"}
+                        </td>
+                        <td style={{ padding: 10, fontWeight: 700 }}>
+                          {s.totalScore ?? s.score ?? 0}
+                        </td>
+                        <td style={{ padding: 10 }} className="muted">
+                          {s.survivalTime ?? 0}s
+                        </td>
+                        <td style={{ padding: 10, textAlign: "right" }}>
+                          <button
+                              className="danger"
+                              onClick={() =>
+                                  setPendingAction({
+                                    type: "score",
+                                    id: s._id,
+                                    message: `Delete score record (${s.totalScore ?? 0} kills) for ${
+                                        s.player?.username || "this user"
+                                    }?`,
+                                  })
+                              }
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                  ))}
+                  </tbody>
+                </table>
+            )}
+          </div>
         </div>
 
         <ConfirmModal
