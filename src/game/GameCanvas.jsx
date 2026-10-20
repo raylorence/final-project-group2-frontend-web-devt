@@ -40,7 +40,7 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
 
       // frozenRef is checked FIRST — once true, nothing updates ever again
       if (!frozenRef.current && !pausedRef.current) {
-        engineRef.current.handleInput(keysRef.current, t);
+        engineRef.current.handleInput(keysRef.current, delta, t);
         engineRef.current.update(delta, t);
       }
 

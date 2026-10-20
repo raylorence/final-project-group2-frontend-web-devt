@@ -7,7 +7,7 @@ export const HUD_HEIGHT = 40;
 
 export const PLAYER = {
   size: 22,
-  speed: 70,
+  speed: 140,
   maxHealth: 100,
   fireCooldown: 200,
   invulnMs: 700,

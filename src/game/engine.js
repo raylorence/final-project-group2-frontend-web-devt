@@ -261,7 +261,7 @@ export function createEngine(onGameOver) {
     return null;
   }
 
-  function handleInput(keys, now) {
+  function handleInput(keys, delta, now) {
     if (!state.alive) return;
     const p = state.player;
 
@@ -273,7 +273,7 @@ export function createEngine(onGameOver) {
       p.aimAngle = dir.angle;
 
       const len = Math.hypot(dir.dx, dir.dy);
-      const step = PLAYER.speed * (1 / 60);
+      const step = PLAYER.speed * (delta / 1000);
 
       const moved = tryMoveCircle(
           p.x, p.y, p.size / 2,
