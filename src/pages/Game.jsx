@@ -4,6 +4,8 @@ import GameCanvas from "../game/GameCanvas.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { submitScore } from "../api/scoreApi.js";
 import ConfirmModal from "../components/ConfirmModal.jsx";
+import { toggleMute, getMuteState } from "../game/sound.js";
+
 
 export default function Game() {
     const { token } = useAuth();
@@ -15,6 +17,7 @@ export default function Game() {
     const [gameKey, setGameKey] = useState(0);
     const [paused, setPaused] = useState(false);
     const [pendingNav, setPendingNav] = useState(null);
+    const [isMuted, setIsMuted] = useState(getMuteState());
 
     const handleGameOver = useCallback(
         async (matchResult) => {
@@ -75,6 +78,9 @@ export default function Game() {
                     <div className="muted" style={{ fontSize: 13 }}>
                         WASD move • Spacebar shoot • Esc pause
                     </div>
+                    <button className="secondary" onClick={() => setIsMuted(toggleMute())}>
+                      {isMuted ? "🔇 Unmute" : "🔊 Mute"}
+                    </button>
                     <button
                         className="secondary"
                         onClick={handleTogglePause}

@@ -1,7 +1,7 @@
-// src/game/GameCanvas.jsx
 import { useEffect, useRef } from "react";
 import { CANVAS_W, CANVAS_H } from "./constants.js";
 import { createEngine } from "./engine.js";
+import { initAudio, unlockAudio } from "./sound.js";
 
 export default function GameCanvas({ onGameOver, onPause, paused = false }) {
   const canvasRef = useRef(null);
@@ -12,16 +12,16 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
   const pausedRef = useRef(paused);
   const frozenRef = useRef(false);
 
-  // set true the moment game over fires
+  // Keep latest callbacks without re-running the main effect
   const onGameOverRef = useRef(onGameOver);
   const onPauseRef = useRef(onPause);
 
-  // Keep latest callbacks without re-running the main effect
   useEffect(() => { onGameOverRef.current = onGameOver; }, [onGameOver]);
   useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
   useEffect(() => {
+    initAudio();
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -34,8 +34,10 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
     engineRef.current = createEngine((result) => {
       if (frozenRef.current) return;
       frozenRef.current = true;
+      
       // Render one final frame so the corpse + HUD sit under the overlay
       engineRef.current.draw(ctx);
+      
       // Notify React AFTER drawing, so the overlay appears over a frozen scene
       if (onGameOverRef.current) onGameOverRef.current(result);
     });
@@ -43,22 +45,36 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
     function loop(t) {
       const delta = Math.min(50, t - lastTimeRef.current || 16);
       lastTimeRef.current = t;
+
       // frozenRef is checked FIRST - once true, nothing updates ever again
       if (!frozenRef.current && !pausedRef.current) {
-        engineRef.current.handleInput(keysRef.current, delta, t);
+        engineRef.current.handleInput(keysRef.current, t); // FIXED: Removed 'delta'
         engineRef.current.update(delta, t);
       }
-      engineRef.current.draw(ctx, pausedRef.current);
+      
+      engineRef.current.draw(ctx); // FIXED: Removed 'pausedRef.current'
+
+      // Draw Pause Overlay manually on top of the canvas
+      if (pausedRef.current && !frozenRef.current) {
+        ctx.fillStyle = "rgba(7, 11, 16, 0.65)";
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.fillStyle = "#4ec9b0";
+        ctx.font = "bold 44px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("PAUSED", CANVAS_W / 2, CANVAS_H / 2 - 10);
+        ctx.fillStyle = "#7d8590";
+        ctx.font = "16px system-ui";
+        ctx.fillText("Press Esc to resume", CANVAS_W / 2, CANVAS_H / 2 + 30);
+      }
+
       rafRef.current = requestAnimationFrame(loop);
     }
 
     rafRef.current = requestAnimationFrame(loop);
 
     function onKeyDown(e) {
-      if (window.AudioContext || window.webkitAudioContext) {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') ctx.resume();
-      }
+      // Unlock audio safely (without creating new contexts)
+      unlockAudio();
       
       const k = e.key.toLowerCase();
       if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
@@ -95,21 +111,21 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
   }, []);
 
   return (
-      <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          style={{
-            width: "100%",
-            maxWidth: CANVAS_W,
-            borderRadius: 10,
-            border: "1px solid #30363d",
-            display: "block",
-            margin: "0 auto",
-            cursor: "default",
-            outline: "none",
-          }}
-          tabIndex={0}
-      />
+    <canvas
+      ref={canvasRef}
+      width={CANVAS_W}
+      height={CANVAS_H}
+      style={{
+        width: "100%",
+        maxWidth: CANVAS_W,
+        borderRadius: 10,
+        border: "1px solid #30363d",
+        display: "block",
+        margin: "0 auto",
+        cursor: "default",
+        outline: "none",
+      }}
+      tabIndex={0}
+    />
   );
 }

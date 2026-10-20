@@ -1,4 +1,7 @@
-import { initAudio, playSound } from "./audio.js";
+import { 
+  initAudio, playShoot, playHit, playKill, playHurt, playGameOver, 
+  playHeartbeat, playSurge 
+} from "./sound.js";
 
 import {
   CANVAS_W, CANVAS_H, WORLD_W, WORLD_H, HUD_HEIGHT,
@@ -17,23 +20,19 @@ const createSprite = (drawFn, size) => {
 
 const ENEMY_SPRITES = {};
 const BULLET_SPRITE = createSprite((ctx, size) => {
-  // Center the drawing point
   ctx.translate(size / 2, size / 2);
-
-  // Draw the original glowing circle
   ctx.shadowColor = "#4ec9b0";
   ctx.shadowBlur = 10;
   ctx.fillStyle = "#a5f3e0";
   ctx.beginPath();
-  ctx.arc(0, 0, size / 2 - 10, 0, Math.PI * 2); // 10px padding for the shadow
+  ctx.arc(0, 0, size / 2 - 10, 0, Math.PI * 2); 
   ctx.fill();
 }, 30);
 
-// Pre-render all enemy types
 Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
   ENEMY_SPRITES[type] = createSprite((ctx, size) => {
     const spikes = 10;
-    const outer = size / 2 - 2; // Padding
+    const outer = size / 2 - 2; 
     const inner = outer * 0.65;
     ctx.translate(size / 2, size / 2);
     ctx.fillStyle = t.color;
@@ -50,7 +49,7 @@ Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
     ctx.strokeStyle = "rgba(0,0,0,0.4)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
-  }, t.size + 4); // Add padding for the stroke
+  }, t.size + 4);
 });
 
 export function createEngine(onGameOver) {
@@ -89,6 +88,7 @@ export function createEngine(onGameOver) {
       alive: true,
       screenShake: 0,
       gameOverFired: false,
+      surgeFired: false,
       camera: { x: 0, y: 0 },
     };
 
@@ -110,7 +110,6 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Collision ----------
-  // Fast distance check (no Math.hypot)
   function distSq(ax, ay, bx, by) {
     const dx = ax - bx;
     const dy = ay - by;
@@ -144,8 +143,7 @@ export function createEngine(onGameOver) {
 
   // ---------- Spawning ----------
   function pickEnemyType() {
-    // Fast manual weighted pick
-    const r = Math.random() * 11; // Sum of weights (6 + 3 + 2)
+    const r = Math.random() * 11; 
     if (r < 6) return "fast";
     if (r < 9) return "tank";
     return "splitter";
@@ -166,27 +164,24 @@ export function createEngine(onGameOver) {
       let valid = false;
       let attempts = 0;
 
-      // Ensure enemies spawn off-camera and out of walls
       while (!valid && attempts < 20) {
         const edge = Math.floor(Math.random() * 4);
-        if (edge === 0) { // Top
+        if (edge === 0) {
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewTop - buffer;
-        } else if (edge === 1) { // Right
+        } else if (edge === 1) {
           sx = viewRight + buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
-        } else if (edge === 2) { // Bottom
+        } else if (edge === 2) {
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewBottom + buffer;
-        } else { // Left
+        } else {
           sx = viewLeft - buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
         }
 
-        // Prevent spawning in the top HUD area where they get paralyzed
         sy = Math.max(HUD_HEIGHT + size / 2 + 10, sy);
 
-        // Verify it's not inside the camera view and not stuck in a wall
         const inViewX = sx > viewLeft - size && sx < viewRight + size;
         const inViewY = sy > viewTop - size && sy < viewBottom + size;
 
@@ -196,23 +191,18 @@ export function createEngine(onGameOver) {
         attempts++;
       }
 
-      // Failsafe if we couldn't find an offscreen point after 20 tries
       if (!valid) {
         sx = viewRight + buffer;
         sy = Math.max(HUD_HEIGHT + size / 2 + 10, viewBottom + buffer);
       }
     }
 
-    // Push out of walls (like splitters dying on walls)
     if (x !== undefined && circleHitsAnyWall(sx, sy, size / 2)) {
       const pushAngle = Math.atan2(WORLD_H / 2 - sy, WORLD_W / 2 - sx);
       let attempts = 0;
-
       while (circleHitsAnyWall(sx, sy, size / 2) && attempts < 30) {
         sx += Math.cos(pushAngle) * 8;
         sy += Math.sin(pushAngle) * 8;
-
-        // FIX: Ensure the push-out logic doesn't shove them into the HUD
         sx = Math.max(size, Math.min(WORLD_W - size, sx));
         sy = Math.max(HUD_HEIGHT + size + 10, Math.min(WORLD_H - size, sy));
         attempts++;
@@ -235,7 +225,6 @@ export function createEngine(onGameOver) {
   }
 
   function explode(x, y, color, count = 8) {
-    // Cap particles to prevent lag
     if (state.particles.length > 200) return;
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -265,16 +254,12 @@ export function createEngine(onGameOver) {
     return null;
   }
 
-  function handleInput(keys, delta, now) {
+  function handleInput(keys, now) {
     if (!state.alive) return;
-    const dt = delta / 1000;
     const p = state.player;
 
     const moveDir = resolveDirection(
-        keys.has("w"),
-        keys.has("s"),
-        keys.has("a"),
-        keys.has("d")
+        keys.has("w"), keys.has("s"), keys.has("a"), keys.has("d")
     );
 
     if (moveDir) {
@@ -283,7 +268,8 @@ export function createEngine(onGameOver) {
       p.aimAngle = moveDir.angle;
 
       const len = Math.hypot(moveDir.dx, moveDir.dy);
-      const step = PLAYER.speed * (delta / 1000);
+      // Smooth step based on 60fps (approx 16.6ms per frame)
+      const step = PLAYER.speed * (1 / 60); 
 
       const moved = tryMoveCircle(
           p.x, p.y, p.size / 2,
@@ -295,17 +281,17 @@ export function createEngine(onGameOver) {
       p.y = Math.max(HUD_HEIGHT + p.size / 2, Math.min(WORLD_H - p.size / 2, moved.y));
     }
 
-
     const wantsToShoot = keys.has(" ");
-    if (wantsToShoot && state.elapsed - p.lastShotAt >= PLAYER.fireCooldown) {
-      fire();
+    if (wantsToShoot && now - p.lastShotAt >= PLAYER.fireCooldown) {
+      fire(now);
     }
   }
 
-  function fire() {
+  function fire(now) {
     const p = state.player;
-    p.lastShotAt = state.elapsed;
-    playSound("shoot");
+    p.lastShotAt = now;
+    playShoot();
+    
     const muzzle = p.size / 2 + BULLET.size / 2;
     const dirX = p.facingX;
     const dirY = p.facingY;
@@ -322,7 +308,7 @@ export function createEngine(onGameOver) {
     });
   }
 
-  // ---------- AI (Optimized) ----------
+  // ---------- AI ----------
   const ENEMY_DIRS = [
     DIRECTIONS.N, DIRECTIONS.NE, DIRECTIONS.E, DIRECTIONS.SE,
     DIRECTIONS.S, DIRECTIONS.SW, DIRECTIONS.W, DIRECTIONS.NW,
@@ -332,8 +318,6 @@ export function createEngine(onGameOver) {
     const rawAngle = Math.atan2(p.y - e.y, p.x - e.x);
     let bestDir = e.currentDir || ENEMY_DIRS[0];
     let bestScore = Infinity;
-
-    // Look far enough ahead to detect wall collisions before getting wedged
     const probeDist = e.size / 2 + 12;
 
     for (let i = 0; i < ENEMY_DIRS.length; i++) {
@@ -347,14 +331,11 @@ export function createEngine(onGameOver) {
       let angleDiff = Math.abs(rawAngle - d.angle);
       if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
 
-      // Penalize 180-degree reversals so enemies commit to sliding along long walls
       let reversalPenalty = 0;
       if (e.currentDir) {
         let turnDiff = Math.abs(e.currentDir.angle - d.angle);
         if (turnDiff > Math.PI) turnDiff = Math.PI * 2 - turnDiff;
-        if (turnDiff > Math.PI * 0.75) {
-          reversalPenalty = 1.2; // Prevents oscillation on Long Halls / The Bunker
-        }
+        if (turnDiff > Math.PI * 0.75) reversalPenalty = 1.2;
       }
 
       const score = angleDiff + reversalPenalty;
@@ -380,6 +361,11 @@ export function createEngine(onGameOver) {
 
     const dt = delta / 1000;
     state.elapsed += delta;
+    
+    if (state.elapsed > 45000 && !state.surgeFired) {
+      state.surgeFired = true;
+      playSurge();
+    }
 
     updateCamera();
 
@@ -406,38 +392,35 @@ export function createEngine(onGameOver) {
     if (state.spawnAccum >= state.spawnInterval) {
       state.spawnAccum = 0;
       spawnEnemy(pickEnemyType());
-      if (
-          state.elapsed > DIFFICULTY.doubleSpawnAfterMs &&
-          Math.random() < DIFFICULTY.doubleSpawnChance
-      ) {
+      if (state.elapsed > DIFFICULTY.doubleSpawnAfterMs && Math.random() < DIFFICULTY.doubleSpawnChance) {
         spawnEnemy(pickEnemyType());
       }
     }
 
-// Enemies
+    // Enemies
     const p = state.player;
+
+    // Heartbeat logic moved here from draw()
+    if (p.health <= 25 && p.health > 0) {
+      playHeartbeat(now);
+    }
+
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
 
-
-      // Failsafe for enemies stuck in the top HUD zone
       if (e.y - e.size / 2 < HUD_HEIGHT) {
         e.y = HUD_HEIGHT + e.size / 2 + 2;
       }
 
-      // AI Reaction Time Logic
       e.aiCooldown -= dt;
       if (e.aiCooldown <= 0 || !e.currentDir) {
         e.currentDir = pickEnemyDirection(e, p);
-
-        // Set the reaction delay based on enemy type.
-        // Fast enemies react in 0.15s, tanks take 0.5s to turn.
         if (e.type === "fast") e.aiCooldown = 0.15;
         else if (e.type === "tank") e.aiCooldown = 0.50;
         else e.aiCooldown = 0.30;
       }
 
-      const dir = e.currentDir; // Use the stored direction instead of recalculating
+      const dir = e.currentDir; 
       const step = e.speed * dt;
       const len = (dir.dx !== 0 && dir.dy !== 0) ? 1.414 : 1;
 
@@ -450,20 +433,20 @@ export function createEngine(onGameOver) {
       e.x = moved.x;
       e.y = moved.y;
       e.wobble += dt * 6;
-      // Use squared distance for collision check (fast)
+      
       const hitRadius = (e.size / 2 + p.size / 2);
-      if (state.elapsed > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
+      if (now > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
         p.health = Math.max(0, p.health - e.damage);
-        p.invulnUntil = state.elapsed + PLAYER.invulnMs;
+        p.invulnUntil = now + PLAYER.invulnMs;
         state.screenShake = 14;
-        playSound("hurt");
+        playHurt();
         explode(p.x, p.y, "#f85149", 12);
         state.enemies.splice(i, 1);
 
         if (p.health <= 0) {
           state.alive = false;
           state.screenShake = 0;
-          playSound("gameover");
+          playGameOver();
           explode(p.x, p.y, "#4ec9b0", 40);
 
           if (!state.gameOverFired) {
@@ -474,8 +457,6 @@ export function createEngine(onGameOver) {
             });
           }
           return;
-        } else {
-
         }
         continue;
       }
@@ -493,15 +474,14 @@ export function createEngine(onGameOver) {
 
         if (distSq(b.x, b.y, e.x, e.y) < totalRadius * totalRadius) {
           e.hp -= b.damage;
-          playSound("hit");
-          explode(b.x, b.y, e.color, 2); // Reduced particles
+          explode(b.x, b.y, e.color, 2);
           consumed = true;
 
           if (e.hp <= 0) {
+            playKill(e.type);
             state.score += e.points;
             state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
-            explode(e.x, e.y, e.color, 8); // Reduced particles
-
+            explode(e.x, e.y, e.color, 8);
 
             if (e.type === "splitter" && e.size > 14) {
               spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
@@ -509,9 +489,9 @@ export function createEngine(onGameOver) {
             }
             state.enemies.splice(ei, 1);
           } else {
-
+            playHit();
           }
-          break; // Bullet is consumed, stop checking other enemies
+          break; 
         }
       }
       if (consumed) state.bullets.splice(bi, 1);
@@ -533,7 +513,7 @@ export function createEngine(onGameOver) {
     }
   }
 
-  // ---------- Draw (Optimized) ----------
+  // ---------- Draw ----------
   function draw(ctx, isPaused) {
     ctx.fillStyle = "#070b10";
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -547,15 +527,11 @@ export function createEngine(onGameOver) {
 
     ctx.translate(-Math.round(state.camera.x), -Math.round(state.camera.y));
 
-    
     // Dark Bloodstream Floor
-    const bloodFloor = ctx.createLinearGradient(
-      0, 0, WORLD_W, WORLD_H
-    );
+    const bloodFloor = ctx.createLinearGradient(0, 0, WORLD_W, WORLD_H);
     bloodFloor.addColorStop(0, "#26080d");
     bloodFloor.addColorStop(0.5, "#180609");
     bloodFloor.addColorStop(1, "#30090f");
-
     ctx.fillStyle = bloodFloor;
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
@@ -564,15 +540,9 @@ export function createEngine(onGameOver) {
       const x = (i * 347 + 83) % WORLD_W;
       const y = (i * 193 + 47) % WORLD_H;
       const radius = 15 + ((i * 17) % 35);
-
       ctx.beginPath();
-      ctx.ellipse(
-        x, y, radius * 1.7, radius,
-        (i % 5) * 0.3, 0, Math.PI * 2
-      );
-      ctx.fillStyle = i % 2 === 0
-        ? "rgba(90, 8, 22, 0.16)"
-        : "rgba(130, 25, 40, 0.07)";
+      ctx.ellipse(x, y, radius * 1.7, radius, (i % 5) * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = i % 2 === 0 ? "rgba(90, 8, 22, 0.16)" : "rgba(130, 25, 40, 0.07)";
       ctx.fill();
     }
 
@@ -591,27 +561,20 @@ export function createEngine(onGameOver) {
     vessels.forEach((points, index) => {
       ctx.beginPath();
       ctx.moveTo(points[0], points[1]);
-
       for (let j = 2; j < points.length; j += 2) {
         ctx.lineTo(points[j], points[j + 1]);
       }
-
-      ctx.strokeStyle = index % 2 === 0
-        ? "rgba(130, 20, 38, 0.32)"
-        : "rgba(75, 10, 25, 0.45)";
+      ctx.strokeStyle = index % 2 === 0 ? "rgba(130, 20, 38, 0.32)" : "rgba(75, 10, 25, 0.45)";
       ctx.lineWidth = index % 2 === 0 ? 24 : 16;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.stroke();
 
-      // Inner highlight of each vessel
       ctx.beginPath();
       ctx.moveTo(points[0], points[1]);
-
       for (let j = 2; j < points.length; j += 2) {
         ctx.lineTo(points[j], points[j + 1]);
       }
-
       ctx.strokeStyle = "rgba(200, 35, 55, 0.09)";
       ctx.lineWidth = 5;
       ctx.stroke();
@@ -623,34 +586,19 @@ export function createEngine(onGameOver) {
       const y = (i * 271 + 39) % WORLD_H;
       const rx = 4 + (i % 4);
       const ry = 2.5 + (i % 3) * 0.6;
-
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate((i * 37 % 180) * Math.PI / 180);
-
       ctx.beginPath();
       ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(190, 35, 55, 0.22)";
       ctx.fill();
-
       ctx.beginPath();
       ctx.ellipse(0, 0, rx * 0.4, ry * 0.4, 0, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(60, 5, 15, 0.25)";
       ctx.fill();
-
       ctx.restore();
     }
-
-    // Tiny suspended particles
-    for (let i = 0; i < 120; i++) {
-      const x = (i * 149 + 31) % WORLD_W;
-      const y = (i * 227 + 17) % WORLD_H;
-      const size = 1 + (i % 3);
-
-      ctx.fillStyle = "rgba(220, 65, 75, 0.13)";
-      ctx.fillRect(x, y, size, size);
-    }
-
 
     // Walls
     for (let i = 0; i < state.walls.length; i++) {
@@ -672,27 +620,22 @@ export function createEngine(onGameOver) {
       const pt = state.particles[i];
       ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
       ctx.fillStyle = pt.color;
-      ctx.fillRect(pt.x, pt.y, pt.size, pt.size); // fillRect is faster than arc
+      ctx.fillRect(pt.x, pt.y, pt.size, pt.size); 
     }
     ctx.globalAlpha = 1;
 
-    // Enemies (Using Pre-rendered Sprites)
+    // Enemies
     for (let i = 0; i < state.enemies.length; i++) {
       const e = state.enemies[i];
       const sprite = ENEMY_SPRITES[e.type];
-
-      // We rotate the canvas slightly to maintain the "wobble" effect
       ctx.save();
       ctx.translate(e.x, e.y);
       ctx.rotate(e.wobble);
-
       const scale = (e.size + 4) / sprite.width;
       ctx.scale(scale, scale);
-
       ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
       ctx.restore();
 
-      // HP Bar
       if (e.maxHp > 1 && e.hp < e.maxHp) {
         ctx.fillStyle = "rgba(0,0,0,0.6)";
         ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2 - 8, e.size, 3);
@@ -704,12 +647,9 @@ export function createEngine(onGameOver) {
     // Bullets
     for (let i = 0; i < state.bullets.length; i++) {
       const b = state.bullets[i];
-
-      // Fast scaling to bullet size
-      const scale = b.size / 10; // Base sprite was drawn at size 10
+      const scale = b.size / 10;
       const w = BULLET_SPRITE.width * scale;
       const h = BULLET_SPRITE.height * scale;
-
       ctx.drawImage(BULLET_SPRITE, b.x - w / 2, b.y - h / 2, w, h);
     }
 
@@ -747,10 +687,8 @@ export function createEngine(onGameOver) {
     ctx.restore(); // End Camera
 
     // --- LOW HEALTH VIGNETTE ---
-    if (state.alive && p.health <= 35) {
-      // Oscillates smoothly between 0 and 1 using elapsed game time
+    if (state.alive && p.health <= 25 && p.health > 0) {
       const pulse = (Math.sin(state.elapsed * 0.008) + 1) * 0.5;
-
       const vigGrad = ctx.createRadialGradient(
           CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.25,
           CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.62
