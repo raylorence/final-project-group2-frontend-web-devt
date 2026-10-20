@@ -474,6 +474,8 @@ export function createEngine(onGameOver) {
             });
           }
           return;
+        } else {
+
         }
         continue;
       }
@@ -499,11 +501,15 @@ export function createEngine(onGameOver) {
             state.score += e.points;
             state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
             explode(e.x, e.y, e.color, 8); // Reduced particles
+
+
             if (e.type === "splitter" && e.size > 14) {
               spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
               spawnEnemy("splitter", e.x + 10, e.y, e.size * 0.6, 1);
             }
             state.enemies.splice(ei, 1);
+          } else {
+
           }
           break; // Bullet is consumed, stop checking other enemies
         }
@@ -541,25 +547,110 @@ export function createEngine(onGameOver) {
 
     ctx.translate(-Math.round(state.camera.x), -Math.round(state.camera.y));
 
-    // World Background
-    const grad = ctx.createRadialGradient(
-        WORLD_W / 2, WORLD_H / 2, 60,
-        WORLD_W / 2, WORLD_H / 2, Math.max(WORLD_W, WORLD_H)
+    
+    // Dark Bloodstream Floor
+    const bloodFloor = ctx.createLinearGradient(
+      0, 0, WORLD_W, WORLD_H
     );
-    grad.addColorStop(0, "#1a2430");
-    grad.addColorStop(1, "#070b10");
-    ctx.fillStyle = grad;
+    bloodFloor.addColorStop(0, "#26080d");
+    bloodFloor.addColorStop(0.5, "#180609");
+    bloodFloor.addColorStop(1, "#30090f");
+
+    ctx.fillStyle = bloodFloor;
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
-    // World Grid
-    ctx.strokeStyle = "rgba(78, 201, 176, 0.06)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x < WORLD_W; x += 45) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_H); ctx.stroke();
+    // Subtle organic tissue texture
+    for (let i = 0; i < 100; i++) {
+      const x = (i * 347 + 83) % WORLD_W;
+      const y = (i * 193 + 47) % WORLD_H;
+      const radius = 15 + ((i * 17) % 35);
+
+      ctx.beginPath();
+      ctx.ellipse(
+        x, y, radius * 1.7, radius,
+        (i % 5) * 0.3, 0, Math.PI * 2
+      );
+      ctx.fillStyle = i % 2 === 0
+        ? "rgba(90, 8, 22, 0.16)"
+        : "rgba(130, 25, 40, 0.07)";
+      ctx.fill();
     }
-    for (let y = 0; y < WORLD_H; y += 45) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_W, y); ctx.stroke();
+
+    // Blood vessels
+    const vessels = [
+      [0, 160, 180, 210, 340, 175, 510, 230, 720, 190, 900, 250],
+      [120, 0, 160, 150, 220, 280, 190, 430, 260, 600],
+      [520, 0, 480, 130, 550, 260, 500, 390, 570, 520, 540, 750],
+      [1000, 0, 940, 130, 1010, 250, 950, 390, 1030, 520],
+      [WORLD_W, 200, 1420, 240, 1300, 190, 1150, 260, 1020, 230],
+      [0, 780, 180, 730, 340, 800, 480, 750, 650, 820],
+      [800, WORLD_H, 850, 850, 920, 730, 890, 620],
+      [WORLD_W, 760, 1450, 720, 1350, 800, 1200, 760]
+    ];
+
+    vessels.forEach((points, index) => {
+      ctx.beginPath();
+      ctx.moveTo(points[0], points[1]);
+
+      for (let j = 2; j < points.length; j += 2) {
+        ctx.lineTo(points[j], points[j + 1]);
+      }
+
+      ctx.strokeStyle = index % 2 === 0
+        ? "rgba(130, 20, 38, 0.32)"
+        : "rgba(75, 10, 25, 0.45)";
+      ctx.lineWidth = index % 2 === 0 ? 24 : 16;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+
+      // Inner highlight of each vessel
+      ctx.beginPath();
+      ctx.moveTo(points[0], points[1]);
+
+      for (let j = 2; j < points.length; j += 2) {
+        ctx.lineTo(points[j], points[j + 1]);
+      }
+
+      ctx.strokeStyle = "rgba(200, 35, 55, 0.09)";
+      ctx.lineWidth = 5;
+      ctx.stroke();
+    });
+
+    // Red blood cells
+    for (let i = 0; i < 85; i++) {
+      const x = (i * 193 + 71) % WORLD_W;
+      const y = (i * 271 + 39) % WORLD_H;
+      const rx = 4 + (i % 4);
+      const ry = 2.5 + (i % 3) * 0.6;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((i * 37 % 180) * Math.PI / 180);
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(190, 35, 55, 0.22)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rx * 0.4, ry * 0.4, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(60, 5, 15, 0.25)";
+      ctx.fill();
+
+      ctx.restore();
     }
+
+    // Tiny suspended particles
+    for (let i = 0; i < 120; i++) {
+      const x = (i * 149 + 31) % WORLD_W;
+      const y = (i * 227 + 17) % WORLD_H;
+      const size = 1 + (i % 3);
+
+      ctx.fillStyle = "rgba(220, 65, 75, 0.13)";
+      ctx.fillRect(x, y, size, size);
+    }
+
 
     // Walls
     for (let i = 0; i < state.walls.length; i++) {
@@ -654,6 +745,22 @@ export function createEngine(onGameOver) {
     ctx.restore();
 
     ctx.restore(); // End Camera
+
+    // --- LOW HEALTH VIGNETTE ---
+    if (state.alive && p.health <= 35) {
+      // Oscillates smoothly between 0 and 1 using elapsed game time
+      const pulse = (Math.sin(state.elapsed * 0.008) + 1) * 0.5;
+
+      const vigGrad = ctx.createRadialGradient(
+          CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.25,
+          CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.62
+      );
+      vigGrad.addColorStop(0, "rgba(248, 81, 73, 0)");
+      vigGrad.addColorStop(1, `rgba(248, 81, 73, ${0.12 + pulse * 0.28})`);
+
+      ctx.fillStyle = vigGrad;
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    }
 
     // --- DRAW HUD ---
     ctx.fillStyle = "#0d1117";

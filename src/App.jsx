@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
+import { checkHealth } from "./api/index.js";
 import Navbar from "./components/Navbar.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -10,7 +12,7 @@ import Admin from "./pages/Admin.jsx";
 
 function Protected({ children, adminOnly = false, playerOnly = false }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="container">Loading…</div>;
+  if (loading) return <div className="container" style={{ textAlign: "center", marginTop: 40 }}>Loading session...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && user.role !== "admin") return <Navigate to="/menu" replace />;
   if (playerOnly && user.role === "admin") return <Navigate to="/admin" replace />;
@@ -18,19 +20,24 @@ function Protected({ children, adminOnly = false, playerOnly = false }) {
 }
 
 export default function App() {
+  // Pre-warm the backend on load to eliminate Render cold-start latency
+  useEffect(() => {
+    checkHealth().catch(() => {});
+  }, []);
+
   return (
-    <>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Navigate to="/menu" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/menu" element={<Protected><Menu /></Protected>} />
-        <Route path="/play" element={<Protected playerOnly><Game /></Protected>} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
-        <Route path="/admin" element={<Protected adminOnly><Admin /></Protected>} />
-        <Route path="*" element={<Navigate to="/menu" replace />} />
-      </Routes>
-    </>
+      <>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Navigate to="/menu" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/menu" element={<Protected><Menu /></Protected>} />
+          <Route path="/play" element={<Protected playerOnly><Game /></Protected>} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/admin" element={<Protected adminOnly><Admin /></Protected>} />
+          <Route path="*" element={<Navigate to="/menu" replace />} />
+        </Routes>
+      </>
   );
 }

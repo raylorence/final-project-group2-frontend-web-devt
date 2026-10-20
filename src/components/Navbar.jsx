@@ -7,8 +7,6 @@ export default function Navbar() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-
-    // UX State for the confirmation modal
     const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const handleConfirmLogout = () => {
@@ -17,9 +15,9 @@ export default function Navbar() {
         navigate("/login");
     };
 
+    // Reclaim full vertical viewport on the gameplay screen
     if (location.pathname === "/play") {
-        return <nav className="navbar">
-        </nav>;
+        return null;
     }
 
     return (
@@ -34,7 +32,9 @@ export default function Navbar() {
                 <div style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
                     {user ? (
                         <>
-                            <span className="muted" style={{ fontSize: 13 }}>Signed in as <strong>{user.username}</strong></span>
+              <span className="muted" style={{ fontSize: 13 }}>
+                Signed in as <strong>{user.username}</strong>
+              </span>
                             <button
                                 className="secondary"
                                 style={{ padding: "6px 12px", fontSize: 13 }}
@@ -52,7 +52,6 @@ export default function Navbar() {
                 </div>
             </nav>
 
-            {/* Render the modal outside the main nav flow */}
             <ConfirmModal
                 isOpen={showLogoutModal}
                 message="Are you sure you want to disconnect your session?"
