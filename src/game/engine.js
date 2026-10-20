@@ -673,9 +673,13 @@ export function createEngine(onGameOver) {
           explode(b.x, b.y, e.color, 2); // Reduced particles
           consumed = true;
 
-          // 60ms Hit-Flash & 3px Knockback on tank or splitter ---
-          if (e.type === "tank" || e.type === "splitter") {
+          // Hit-flash triggers for tank, splitter, AND worm
+          if (e.type === "tank" || e.type === "splitter" || e.type === "worm") {
             e.hitFlash = 60;
+          }
+
+          // Knockback ONLY affects tank and splitter (worm is immune to knockback)
+          if (e.type === "tank" || e.type === "splitter") {
             const bLen = Math.hypot(b.vx, b.vy) || 1;
             const kx = (b.vx / bLen) * 3;
             const ky = (b.vy / bLen) * 3;
@@ -1016,7 +1020,7 @@ export function createEngine(onGameOver) {
 
     // Player
     const p = state.player;
-    const r = p.size / 2;
+    const r = p.size / 2; // <-- Defined here in scope for both body and muzzle flash
     let visible = true;
     if (p.invulnUntil > state.elapsed) {
       const remaining = p.invulnUntil - state.elapsed;
@@ -1031,7 +1035,6 @@ export function createEngine(onGameOver) {
       ctx.shadowColor = "#4ec9b0";
       ctx.shadowBlur = 14;
       ctx.fillStyle = "#4ec9b0";
-      const r = p.size / 2;
       ctx.beginPath();
       ctx.arc(0, -r / 2, r, Math.PI, 0);
       ctx.lineTo(r, r / 2 - 2);
