@@ -71,59 +71,134 @@ export const DIRECTIONS = {
 
 export const MAPS = [
   {
-    name: "The Cross",
-    spawn: { x: 400, y: 300 }, 
+    name: "Big Boxy",
+    spawn: { x: 800, y: 500 }, 
     walls: [
-      { x: 740, y: 300, w: 120, h: 400 },  
-      { x: 250, y: 600, w: 400, h: 100 },  
-      { x: 950, y: 600, w: 400, h: 100 },  
+      {x: 0, y: 950, w: 700, h: 50}, //main wall bottom left
+      {x: 900, y: 950, w: 700, h: 50}, //main wall bottom right
+      {x: 0, y: 40, w: 700, h: 50}, //main wall top left
+      {x: 900, y: 40, w: 700, h: 50}, //main wall top right
+
+      {x: 0, y: 900, w: 100, h: 100}, //box wall bottom left (border)
+      {x: 200, y: 900, w: 100, h: 100},
+      {x: 400, y: 900, w: 100, h: 100},
+      {x: 600, y: 900, w: 100, h: 100}, //box wall bottom gate (left)
+      {x: 900, y: 900, w: 100, h: 100}, //box wall bottom gate (right)
+      {x: 1100, y: 900, w: 100, h: 100},
+      {x: 1300, y: 900, w: 100, h: 100},
+      {x: 1500, y: 900, w: 100, h: 100},   //box wall bottom right (border)
+
+      {x: 0, y: 40, w: 100, h: 100}, //box wall top left (border)
+      {x: 200, y: 40, w: 100, h: 100},
+      {x: 400, y: 40, w: 100, h: 100},
+      {x: 600, y: 40, w: 100, h: 100}, //box wall top gate (left)
+      {x: 900, y: 40, w: 100, h: 100}, //box wall top gate (right)
+      {x: 1100, y: 40, w: 100, h: 100},
+      {x: 1300, y: 40, w: 100, h: 100},
+      {x: 1500, y: 40, w: 100, h: 100}, //box wall top right (border)
     ],
   },
   {
-    name: "Four Pillars",
-    // Fixed: Spawn moved up to y: 100 to be clearly above the top nub (which starts at y: 150)
-    spawn: { x: 800, y: 100 }, 
+    name: "Rings",
+    spawn: { x: 800, y: 500 },
     walls: [
-      { x: 250, y: 300, w: 150, h: 150 },  
-      { x: 1200, y: 300, w: 150, h: 150 }, 
-      { x: 250, y: 650, w: 150, h: 150 },  
-      { x: 1200, y: 650, w: 150, h: 150 }, 
-      { x: 780, y: 150, w: 40, h: 150 },   
-      { x: 780, y: 700, w: 40, h: 150 },   
-    ],
+      // ===== OUTER RING (ring 1) =====
+      // Top side (left & right segments, gap in middle for N opening)
+      { x: 0,    y: 40,   w: 700, h: 50 },   // top-left
+      { x: 900,  y: 40,   w: 700, h: 50 },   // top-right
+      // Bottom side
+      { x: 0,    y: 950, w: 700, h: 50 },   // bottom-left
+      { x: 900,  y: 950, w: 700, h: 50 },   // bottom-right
+      // Left side (top & bottom segments, gap in middle for W opening)
+      { x: 0,    y: 0,   w: 50,  h: 450 },  // left-top
+      { x: 0,    y: 550, w: 50,  h: 450 },  // left-bottom
+      // Right side
+      { x: 1550, y: 0,   w: 50,  h: 450 },  // right-top
+      { x: 1550, y: 550, w: 50,  h: 450 },  // right-bottom
+      // Corner pillars
+      { x: 0,    y: 0,   w: 100, h: 100 },  // top-left pillar
+      { x: 1500, y: 0,   w: 100, h: 100 },  // top-right pillar
+      { x: 0,    y: 900, w: 100, h: 100 },  // bottom-left pillar
+      { x: 1500, y: 900, w: 100, h: 100 },  // bottom-right pillar
+
+      // ===== MIDDLE RING (ring 2) =====
+      // Top side
+      { x: 200,  y: 200, w: 500, h: 50 },   // top-left
+      { x: 900,  y: 200, w: 500, h: 50 },   // top-right
+      // Bottom side
+      { x: 200,  y: 750, w: 500, h: 50 },   // bottom-left
+      { x: 900,  y: 750, w: 500, h: 50 },   // bottom-right
+      // Left side
+      { x: 200,  y: 250, w: 50,  h: 200 },  // left-top
+      { x: 200,  y: 550, w: 50,  h: 200 },  // left-bottom
+      // Right side
+      { x: 1350, y: 250, w: 50,  h: 200 },  // right-top
+      { x: 1350, y: 550, w: 50,  h: 200 },  // right-bottom
+      // Corner pillars
+      { x: 200,  y: 200, w: 100, h: 100 },  // top-left pillar
+      { x: 1300, y: 200, w: 100, h: 100 },  // top-right pillar
+      { x: 200,  y: 700, w: 100, h: 100 },  // bottom-left pillar
+      { x: 1300, y: 700, w: 100, h: 100 },  // bottom-right pillar
+
+      // ===== INNER RING (ring 3) =====
+      // Top side
+      { x: 400,  y: 350, w: 300, h: 50 },   // top-left
+      { x: 900,  y: 350, w: 300, h: 50 },   // top-right
+      // Bottom side
+      { x: 400,  y: 600, w: 300, h: 50 },   // bottom-left
+      { x: 900,  y: 600, w: 300, h: 50 },   // bottom-right
+      // Left side
+      { x: 400,  y: 350, w: 50,  h: 100 },  // left-top
+      { x: 400,  y: 550, w: 50,  h: 100 },  // left-bottom (shares with bottom corner)
+      // Right side
+      { x: 1150, y: 350, w: 50,  h: 100 },  // right-top
+      { x: 1150, y: 550, w: 50,  h: 100 },  // right-bottom
+      // Corner pillars
+      { x: 400,  y: 400, w: 50, h: 50 },  // top-left pillar
+      { x: 1150, y: 400, w: 50, h: 50 },  // top-right pillar
+      { x: 400,  y: 600, w: 50, h: 50 },  // bottom-left pillar
+      { x: 1150, y: 600, w: 50, h: 50 },  // bottom-right pillar
+        ]
   },
   {
-    name: "The Bunker",
-    spawn: { x: 800, y: 150 }, 
+    name: "Boxyard",
+    spawn: { x: 800, y: 215 },
     walls: [
-      { x: 400, y: 350, w: 350, h: 40 },   
-      { x: 850, y: 350, w: 350, h: 40 },   
-      { x: 400, y: 650, w: 800, h: 40 },   
-      { x: 400, y: 350, w: 40, h: 300 },   
-      { x: 1160, y: 350, w: 40, h: 300 },  
-      { x: 780, y: 450, w: 40, h: 200 },   
-    ],
-  },
-  {
-    name: "Long Halls",
-    spawn: { x: 300, y: 200 }, 
-    walls: [
-      { x: 150, y: 400, w: 1300, h: 40 },  
-      { x: 150, y: 600, w: 1300, h: 40 },  
-      { x: 600, y: 440, w: 40, h: 60 },    
-      { x: 1000, y: 540, w: 40, h: 60 },   
-    ],
-  },
-  {
-    name: "Diamond Split",
-    // Fixed: Spawn moved down to y: 150 to clear the top obstacles (which start at y: 250)
-    spawn: { x: 800, y: 150 }, 
-    walls: [
-      { x: 200, y: 350, w: 400, h: 300 },  
-      { x: 1000, y: 350, w: 400, h: 300 }, 
-      { x: 700, y: 450, w: 200, h: 100 },  
-      { x: 450, y: 250, w: 60, h: 60 },    
-      { x: 1090, y: 250, w: 60, h: 60 },   
-    ],
-  },
+      // ===== ROW 1 (odd: aligned at x = -60, 190, 440, 690, 940, 1190, 1440) =====
+      { x: -60,  y: 40,  w: 150, h: 150 },
+      { x: 190,  y: 40,  w: 150, h: 150 },
+      { x: 440,  y: 40,  w: 150, h: 150 },
+      { x: 690,  y: 40,  w: 150, h: 150 },
+      { x: 940,  y: 40,  w: 150, h: 150 },
+      { x: 1190, y: 40,  w: 150, h: 150 },
+      { x: 1440, y: 40,  w: 150, h: 150 },
+
+      // ===== ROW 2 (even: offset at x = 65, 315, 565, 815, 1065, 1315, 1565) =====
+      { x: 65,   y: 290, w: 150, h: 150 },
+      { x: 315,  y: 290, w: 150, h: 150 },
+      { x: 565,  y: 290, w: 150, h: 150 },
+      { x: 815,  y: 290, w: 150, h: 150 },
+      { x: 1065, y: 290, w: 150, h: 150 },
+      { x: 1315, y: 290, w: 150, h: 150 },
+      { x: 1565, y: 290, w: 150, h: 150 },
+
+      // ===== ROW 3 (odd: aligned) =====
+      { x: -60,  y: 540, w: 150, h: 150 },
+      { x: 190,  y: 540, w: 150, h: 150 },
+      { x: 440,  y: 540, w: 150, h: 150 },
+      { x: 690,  y: 540, w: 150, h: 150 },
+      { x: 940,  y: 540, w: 150, h: 150 },
+      { x: 1190, y: 540, w: 150, h: 150 },
+      { x: 1440, y: 540, w: 150, h: 150 },
+
+      // ===== ROW 4 (even: offset) =====
+      { x: 65,   y: 790, w: 150, h: 150 },
+      { x: 315,  y: 790, w: 150, h: 150 },
+      { x: 565,  y: 790, w: 150, h: 150 },
+      { x: 815,  y: 790, w: 150, h: 150 },
+      { x: 1065, y: 790, w: 150, h: 150 },
+      { x: 1315, y: 790, w: 150, h: 150 },
+      { x: 1565, y: 790, w: 150, h: 150 },
+    ]
+  }
 ];
