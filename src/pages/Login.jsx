@@ -72,9 +72,11 @@ export default function Login() {
         <p className="muted" style={{ marginTop: 14 }}>
           No account? <Link to="/register">Register</Link>
         </p>
-        <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
-          Dev admin: <code>admin</code> / <code>admin123</code>
-        </p>
+        {import.meta.env.DEV && (
+            <p className="muted" style={{ marginTop: 8, fontSize: 12 }}>
+              Dev admin: <code>admin</code> / <code>admin123</code>
+            </p>
+        )}
       </div>
     </div>
   );
