@@ -69,7 +69,7 @@ export function createEngine(onGameOver) {
         size: PLAYER.size,
         health: PLAYER.maxHealth,
         invulnUntil: 0,
-        lastShotAt: 0,
+        lastShotAt: -PLAYER.fireCooldown,
         facingX: 0,
         facingY: -1,
         aimAngle: -Math.PI / 2,
@@ -291,14 +291,16 @@ export function createEngine(onGameOver) {
       p.y = Math.max(HUD_HEIGHT + p.size / 2, Math.min(WORLD_H - p.size / 2, moved.y));
     }
 
-    if (keys.has(" ") && now - p.lastShotAt >= PLAYER.fireCooldown) {
-      fire(now);
+
+    const wantsToShoot = keys.has(" ");
+    if (wantsToShoot && state.elapsed - p.lastShotAt >= PLAYER.fireCooldown) {
+      fire();
     }
   }
 
-  function fire(now) {
+  function fire() {
     const p = state.player;
-    p.lastShotAt = now;
+    p.lastShotAt = state.elapsed;
     const muzzle = p.size / 2 + BULLET.size / 2;
     const dirX = p.facingX;
     const dirY = p.facingY;
@@ -322,23 +324,38 @@ export function createEngine(onGameOver) {
   ];
 
   function pickEnemyDirection(e, p) {
-    // Fast manual angle diff check without sorting arrays
     const rawAngle = Math.atan2(p.y - e.y, p.x - e.x);
-    let bestDir = ENEMY_DIRS[0];
-    let bestDiff = Infinity;
+    let bestDir = e.currentDir || ENEMY_DIRS[0];
+    let bestScore = Infinity;
+
+    // Look far enough ahead to detect wall collisions before getting wedged
+    const probeDist = e.size / 2 + 12;
 
     for (let i = 0; i < ENEMY_DIRS.length; i++) {
       const d = ENEMY_DIRS[i];
-      let diff = Math.abs(rawAngle - d.angle);
-      if (diff > Math.PI) diff = Math.PI * 2 - diff;
-      if (diff < bestDiff) {
-        // Check if it hits a wall
-        const nx = e.x + d.dx * 4;
-        const ny = e.y + d.dy * 4;
-        if (!circleHitsAnyWall(nx, ny, e.size / 2)) {
-          bestDiff = diff;
-          bestDir = d;
+      const len = (d.dx !== 0 && d.dy !== 0) ? Math.SQRT2 : 1;
+      const nx = e.x + (d.dx / len) * probeDist;
+      const ny = e.y + (d.dy / len) * probeDist;
+
+      if (circleHitsAnyWall(nx, ny, e.size / 2)) continue;
+
+      let angleDiff = Math.abs(rawAngle - d.angle);
+      if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+
+      // Penalize 180-degree reversals so enemies commit to sliding along long walls
+      let reversalPenalty = 0;
+      if (e.currentDir) {
+        let turnDiff = Math.abs(e.currentDir.angle - d.angle);
+        if (turnDiff > Math.PI) turnDiff = Math.PI * 2 - turnDiff;
+        if (turnDiff > Math.PI * 0.75) {
+          reversalPenalty = 1.2; // Prevents oscillation on Long Halls / The Bunker
         }
+      }
+
+      const score = angleDiff + reversalPenalty;
+      if (score < bestScore) {
+        bestScore = score;
+        bestDir = d;
       }
     }
     return bestDir;
@@ -430,9 +447,9 @@ export function createEngine(onGameOver) {
       e.wobble += dt * 6;
       // Use squared distance for collision check (fast)
       const hitRadius = (e.size / 2 + p.size / 2);
-      if (now > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
+      if (state.elapsed > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
         p.health = Math.max(0, p.health - e.damage);
-        p.invulnUntil = now + PLAYER.invulnMs;
+        p.invulnUntil = state.elapsed + PLAYER.invulnMs;
         state.screenShake = 14;
         explode(p.x, p.y, "#f85149", 12);
         state.enemies.splice(i, 1);
@@ -503,13 +520,13 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Draw (Optimized) ----------
-  function draw(ctx) {
+  function draw(ctx, isPaused) {
     ctx.fillStyle = "#070b10";
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
     ctx.save();
 
-    if (state.screenShake > 0) {
+    if (state.screenShake > 0 && !isPaused) {
       const s = state.screenShake;
       ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
     }
@@ -600,8 +617,8 @@ export function createEngine(onGameOver) {
     // Player
     const p = state.player;
     let visible = true;
-    if (p.invulnUntil > 0) {
-      const remaining = p.invulnUntil - performance.now();
+    if (p.invulnUntil > state.elapsed) {
+      const remaining = p.invulnUntil - state.elapsed;
       if (remaining > 0) visible = Math.floor(remaining / 80) % 2 === 0;
     }
     if (!state.alive) visible = true;
