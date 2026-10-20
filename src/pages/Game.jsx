@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GameCanvas from "../game/GameCanvas.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
