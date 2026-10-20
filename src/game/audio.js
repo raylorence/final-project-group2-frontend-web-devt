@@ -1,5 +1,7 @@
 let audioCtx = null;
 let buffers = {};
+let isMuted = localStorage.getItem("game_muted") === "true"; // Load saved setting
+let lastShootTime = 0;
 
 const soundUrls = {
   shoot: "/sounds/shoot.wav",
@@ -9,6 +11,7 @@ const soundUrls = {
 };
 
 export function initAudio() {
+    if (audioCtx) return;
   // Create the Audio Context
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   audioCtx = new AudioContext();
@@ -25,31 +28,46 @@ export function initAudio() {
   });
 }
 
-export function playSound(name) {
-  // If audio context isn't ready or the sound hasn't loaded yet, skip
-  if (!audioCtx || !buffers[name]) return;
+export function toggleMute() {
+  isMuted = !isMuted;
+  localStorage.setItem("game_muted", isMuted);
+  return isMuted;
+}
 
-  // Browser autoplay policy: resume context if suspended
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume();
+export function getMuteState() {
+  return isMuted;
+}
+
+export function playSound(name) {
+   if (isMuted) return;
+
+  // If the context crashed or was closed, rebuild it
+  if (!audioCtx || audioCtx.state === "closed") {
+    console.warn("AudioContext crashed or closed. Rebuilding...");
+    initAudio(); 
+    return; // Skip this sound, let the next one play
   }
 
-  // Create a source node and play the buffered sound
   const source = audioCtx.createBufferSource();
   source.buffer = buffers[name];
-  
-  // Adjust volume
-  const gainNode = audioCtx.createGain();
-  gainNode.gain.value = 0.3; // 30% volume
 
-  // (Optional) Make the shoot sound play slightly faster/higher pitched
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = name === "gameover" ? 0.6 : 0.3;
+
   if (name === "shoot") {
-    source.playbackRate.value = 1.1; 
+    const now = performance.now();
+    if (now - lastShootTime < 180) return; // Prevent spam
+    lastShootTime = now;
   }
 
-  // Connect and play
   source.connect(gainNode);
   gainNode.connect(audioCtx.destination);
-  
-  source.start(0); // Start immediately
+
+  // --- CRITICAL FIX: Clean up nodes when the sound finishes ---
+  source.onended = () => {
+    source.disconnect();
+    gainNode.disconnect();
+  };
+
+  source.start(audioCtx.currentTime + 0.01);
 }

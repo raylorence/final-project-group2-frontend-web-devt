@@ -4,6 +4,7 @@ import GameCanvas from "../game/GameCanvas.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { submitScore } from "../api/scoreApi.js";
 import ConfirmModal from "../components/ConfirmModal.jsx";
+import { toggleMute, getMuteState } from "../game/audio.js";
 
 /**
  * Game Page Component
@@ -19,6 +20,7 @@ export default function Game() {
     const [error, setError] = useState("");
     const [gameKey, setGameKey] = useState(0);
     const [paused, setPaused] = useState(false);
+    const [isMuted, setIsMuted] = useState(getMuteState());
 
     // State to track which path the user is trying to navigate to
     const [pendingNav, setPendingNav] = useState(null);
@@ -52,6 +54,11 @@ export default function Game() {
       setPaused((p) => !p);
   }, [result]);
 
+  const handleToggleMute = () => {
+    const newMuteState = toggleMute();
+    setIsMuted(newMuteState);
+  };
+
   /**
    * Reset game state and remount canvas for a new match run
    */
@@ -84,6 +91,13 @@ export default function Game() {
           <div className="muted" style={{ fontSize: 13 }}>
             WASD move · Spacebar shoot · Esc pause
           </div>
+          <button
+            className="secondary"
+            onClick={handleToggleMute}
+            style={{ minWidth: 90, padding: "6px 14px" }}
+          >
+            {isMuted ? "🔇 Unmute" : "🔊 Mute"}
+          </button>
           <button
             className="secondary"
             onClick={handleTogglePause}
