@@ -17,7 +17,7 @@ const ENEMY_SPRITES = {};
 const BULLET_SPRITE = createSprite((ctx, size) => {
   // Center the drawing point
   ctx.translate(size / 2, size / 2);
-  
+
   // Draw the original glowing circle
   ctx.shadowColor = "#4ec9b0";
   ctx.shadowBlur = 10;
@@ -25,7 +25,7 @@ const BULLET_SPRITE = createSprite((ctx, size) => {
   ctx.beginPath();
   ctx.arc(0, 0, size / 2 - 10, 0, Math.PI * 2); // 10px padding for the shadow
   ctx.fill();
-}, 30); 
+}, 30);
 
 // Pre-render all enemy types
 Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
@@ -60,12 +60,12 @@ export function createEngine(onGameOver) {
 
   function reset() {
     const map = pickMap();
-    
+
     state = {
       mapName: map.name,
       player: {
         x: map.spawn.x,
-        y: Math.max(map.spawn.y, HUD_HEIGHT + 30), 
+        y: Math.max(map.spawn.y, HUD_HEIGHT + 30),
         size: PLAYER.size,
         health: PLAYER.maxHealth,
         invulnUntil: 0,
@@ -87,7 +87,7 @@ export function createEngine(onGameOver) {
       gameOverFired: false,
       camera: { x: 0, y: 0 },
     };
-    
+
     updateCamera();
   }
 
@@ -122,7 +122,7 @@ export function createEngine(onGameOver) {
   }
 
   function circleHitsAnyWall(cx, cy, cr) {
-    if (cy - cr < HUD_HEIGHT) return true; 
+    if (cy - cr < HUD_HEIGHT) return true;
     for (let i = 0; i < state.walls.length; i++) {
       const w = state.walls[i];
       if (circleRectOverlap(cx, cy, cr, w.x, w.y, w.w, w.h)) return true;
@@ -147,30 +147,67 @@ export function createEngine(onGameOver) {
     return "splitter";
   }
 
-      function spawnEnemy(typeName, x, y, sizeOverride, hpOverride) {
+  function spawnEnemy(typeName, x, y, sizeOverride, hpOverride) {
     const t = ENEMY_TYPES[typeName];
     let sx = x, sy = y;
-    
-    if (x === undefined) {
-      const edge = Math.floor(Math.random() * 4);
-      // FIX: Push top spawns further down so they don't get stuck in the HUD zone
-      if (edge === 0) { sx = Math.random() * WORLD_W; sy = HUD_HEIGHT + 50; } 
-      else if (edge === 1) { sx = WORLD_W + 30; sy = Math.random() * WORLD_H; }
-      else if (edge === 2) { sx = Math.random() * WORLD_W; sy = WORLD_H + 30; }
-      else { sx = -30; sy = Math.random() * WORLD_H; }
-    }
-    
     const size = sizeOverride ?? t.size;
+
+    if (x === undefined) {
+      const buffer = 80;
+      const viewLeft = state.camera.x;
+      const viewRight = state.camera.x + CANVAS_W;
+      const viewTop = state.camera.y;
+      const viewBottom = state.camera.y + CANVAS_H;
+
+      let valid = false;
+      let attempts = 0;
+
+      // Ensure enemies spawn off-camera and out of walls
+      while (!valid && attempts < 20) {
+        const edge = Math.floor(Math.random() * 4);
+        if (edge === 0) { // Top
+          sx = Math.random() * (viewRight - viewLeft) + viewLeft;
+          sy = viewTop - buffer;
+        } else if (edge === 1) { // Right
+          sx = viewRight + buffer;
+          sy = Math.random() * (viewBottom - viewTop) + viewTop;
+        } else if (edge === 2) { // Bottom
+          sx = Math.random() * (viewRight - viewLeft) + viewLeft;
+          sy = viewBottom + buffer;
+        } else { // Left
+          sx = viewLeft - buffer;
+          sy = Math.random() * (viewBottom - viewTop) + viewTop;
+        }
+
+        // Prevent spawning in the top HUD area where they get paralyzed
+        sy = Math.max(HUD_HEIGHT + size / 2 + 10, sy);
+
+        // Verify it's not inside the camera view and not stuck in a wall
+        const inViewX = sx > viewLeft - size && sx < viewRight + size;
+        const inViewY = sy > viewTop - size && sy < viewBottom + size;
+
+        if (!(inViewX && inViewY) && !circleHitsAnyWall(sx, sy, size / 2)) {
+          valid = true;
+        }
+        attempts++;
+      }
+
+      // Failsafe if we couldn't find an offscreen point after 20 tries
+      if (!valid) {
+        sx = viewRight + buffer;
+        sy = Math.max(HUD_HEIGHT + size / 2 + 10, viewBottom + buffer);
+      }
+    }
 
     // Push out of walls (like splitters dying on walls)
     if (x !== undefined && circleHitsAnyWall(sx, sy, size / 2)) {
       const pushAngle = Math.atan2(WORLD_H / 2 - sy, WORLD_W / 2 - sx);
       let attempts = 0;
-      
+
       while (circleHitsAnyWall(sx, sy, size / 2) && attempts < 30) {
         sx += Math.cos(pushAngle) * 8;
         sy += Math.sin(pushAngle) * 8;
-        
+
         // FIX: Ensure the push-out logic doesn't shove them into the HUD
         sx = Math.max(size, Math.min(WORLD_W - size, sx));
         sy = Math.max(HUD_HEIGHT + size + 10, Math.min(WORLD_H - size, sy));
@@ -193,7 +230,7 @@ export function createEngine(onGameOver) {
 
   function explode(x, y, color, count = 8) {
     // Cap particles to prevent lag
-    if (state.particles.length > 200) return; 
+    if (state.particles.length > 200) return;
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = 60 + Math.random() * 180;
@@ -235,13 +272,13 @@ export function createEngine(onGameOver) {
 
       const len = Math.hypot(dir.dx, dir.dy);
       const step = PLAYER.speed * (1 / 60);
-      
+
       const moved = tryMoveCircle(
-        p.x, p.y, p.size / 2,
-        (dir.dx / len) * step,
-        (dir.dy / len) * step
+          p.x, p.y, p.size / 2,
+          (dir.dx / len) * step,
+          (dir.dy / len) * step
       );
-      
+
       p.x = Math.max(p.size / 2, Math.min(WORLD_W - p.size / 2, moved.x));
       p.y = Math.max(HUD_HEIGHT + p.size / 2, Math.min(WORLD_H - p.size / 2, moved.y));
     }
@@ -302,8 +339,8 @@ export function createEngine(onGameOver) {
   function computeSpawnInterval(elapsedMs) {
     const t = Math.min(1, elapsedMs / DIFFICULTY.rampDurationMs);
     return (
-      DIFFICULTY.initialSpawnMs +
-      (DIFFICULTY.minSpawnMs - DIFFICULTY.initialSpawnMs) * t
+        DIFFICULTY.initialSpawnMs +
+        (DIFFICULTY.minSpawnMs - DIFFICULTY.initialSpawnMs) * t
     );
   }
 
@@ -324,9 +361,9 @@ export function createEngine(onGameOver) {
       b.age += delta;
 
       const outOfBounds =
-        b.age > BULLET.lifetime ||
-        b.x < -20 || b.x > WORLD_W + 20 ||
-        b.y < HUD_HEIGHT || b.y > WORLD_H + 20;
+          b.age > BULLET.lifetime ||
+          b.x < -20 || b.x > WORLD_W + 20 ||
+          b.y < HUD_HEIGHT || b.y > WORLD_H + 20;
 
       if (outOfBounds || circleHitsAnyWall(b.x, b.y, b.size / 2)) {
         state.bullets.splice(i, 1);
@@ -340,8 +377,8 @@ export function createEngine(onGameOver) {
       state.spawnAccum = 0;
       spawnEnemy(pickEnemyType());
       if (
-        state.elapsed > DIFFICULTY.doubleSpawnAfterMs &&
-        Math.random() < DIFFICULTY.doubleSpawnChance
+          state.elapsed > DIFFICULTY.doubleSpawnAfterMs &&
+          Math.random() < DIFFICULTY.doubleSpawnChance
       ) {
         spawnEnemy(pickEnemyType());
       }
@@ -357,17 +394,17 @@ export function createEngine(onGameOver) {
       if (e.y - e.size / 2 < HUD_HEIGHT) {
         e.y = HUD_HEIGHT + e.size / 2 + 2;
       }
-      
+
       const dir = pickEnemyDirection(e, p);
-      const step = e.speed * dt; 
+      const step = e.speed * dt;
       const len = (dir.dx !== 0 && dir.dy !== 0) ? 1.414 : 1;
-      
+
       const moved = tryMoveCircle(
-        e.x, e.y, e.size / 2,
-        (dir.dx / len) * step,
-        (dir.dy / len) * step
+          e.x, e.y, e.size / 2,
+          (dir.dx / len) * step,
+          (dir.dy / len) * step
       );
-      
+
       e.x = moved.x;
       e.y = moved.y;
       e.wobble += dt * 6;
@@ -403,16 +440,16 @@ export function createEngine(onGameOver) {
       const b = state.bullets[bi];
       let consumed = false;
       const hitRadius = b.size / 2;
-      
+
       for (let ei = state.enemies.length - 1; ei >= 0; ei--) {
         const e = state.enemies[ei];
         const totalRadius = hitRadius + e.size / 2;
-        
+
         if (distSq(b.x, b.y, e.x, e.y) < totalRadius * totalRadius) {
           e.hp -= b.damage;
           explode(b.x, b.y, e.color, 2); // Reduced particles
           consumed = true;
-          
+
           if (e.hp <= 0) {
             state.score += e.points;
             explode(e.x, e.y, e.color, 8); // Reduced particles
@@ -460,8 +497,8 @@ export function createEngine(onGameOver) {
 
     // World Background
     const grad = ctx.createRadialGradient(
-      WORLD_W / 2, WORLD_H / 2, 60,
-      WORLD_W / 2, WORLD_H / 2, Math.max(WORLD_W, WORLD_H)
+        WORLD_W / 2, WORLD_H / 2, 60,
+        WORLD_W / 2, WORLD_H / 2, Math.max(WORLD_W, WORLD_H)
     );
     grad.addColorStop(0, "#1a2430");
     grad.addColorStop(1, "#070b10");
@@ -506,18 +543,18 @@ export function createEngine(onGameOver) {
     for (let i = 0; i < state.enemies.length; i++) {
       const e = state.enemies[i];
       const sprite = ENEMY_SPRITES[e.type];
-      
+
       // We rotate the canvas slightly to maintain the "wobble" effect
       ctx.save();
       ctx.translate(e.x, e.y);
       ctx.rotate(e.wobble);
-      
+
       const scale = (e.size + 4) / sprite.width;
       ctx.scale(scale, scale);
-      
+
       ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
       ctx.restore();
-      
+
       // HP Bar
       if (e.maxHp > 1 && e.hp < e.maxHp) {
         ctx.fillStyle = "rgba(0,0,0,0.6)";
@@ -527,15 +564,15 @@ export function createEngine(onGameOver) {
       }
     }
 
-        // Bullets
+    // Bullets
     for (let i = 0; i < state.bullets.length; i++) {
       const b = state.bullets[i];
-      
+
       // Fast scaling to bullet size
       const scale = b.size / 10; // Base sprite was drawn at size 10
       const w = BULLET_SPRITE.width * scale;
       const h = BULLET_SPRITE.height * scale;
-      
+
       ctx.drawImage(BULLET_SPRITE, b.x - w / 2, b.y - h / 2, w, h);
     }
 
@@ -575,7 +612,7 @@ export function createEngine(onGameOver) {
     // --- DRAW HUD ---
     ctx.fillStyle = "#0d1117";
     ctx.fillRect(0, 0, CANVAS_W, HUD_HEIGHT);
-    
+
     ctx.strokeStyle = "#30363d";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -586,7 +623,7 @@ export function createEngine(onGameOver) {
     const hpW = 220;
     const hp = p.health / PLAYER.maxHealth;
     const barY = (HUD_HEIGHT - 16) / 2;
-    
+
     ctx.fillStyle = "#21262d";
     ctx.fillRect(14, barY, hpW, 16);
     ctx.fillStyle = hp > 0.5 ? "#3fb950" : hp > 0.25 ? "#d29922" : "#f85149";
@@ -594,7 +631,7 @@ export function createEngine(onGameOver) {
     ctx.strokeStyle = "#30363d";
     ctx.lineWidth = 1;
     ctx.strokeRect(14, barY, hpW, 16);
-    
+
     ctx.fillStyle = "#fff";
     ctx.font = "bold 11px system-ui";
     ctx.textAlign = "left";
@@ -604,7 +641,7 @@ export function createEngine(onGameOver) {
     ctx.font = "bold 15px system-ui";
     ctx.fillStyle = "#4ec9b0";
     ctx.fillText(`KILLS ${state.score}`, CANVAS_W - 16, barY + 12);
-    
+
     ctx.font = "11px system-ui";
     ctx.fillStyle = "#7d8590";
     ctx.fillText(`${(state.elapsed / 1000).toFixed(1)}s · ${state.mapName}`, CANVAS_W - 16, barY + 26);
