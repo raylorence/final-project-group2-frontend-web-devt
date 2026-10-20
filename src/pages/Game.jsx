@@ -65,17 +65,17 @@ export default function Game() {
   const isRunning = !result;
 
   return (
-    <div className="container">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 14,
-          gap: 12,
-        }}
-      >
-        <h2>Huling Kapsula — Survival</h2>
+  <div className="container" style={{ marginTop: 0, paddingTop: 10 }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 10,
+        gap: 12,
+      }}
+    >
+      <h2 style={{ margin: 0 }}>Huling Kapsula — Survival</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div className="muted" style={{ fontSize: 13 }}>
             WASD move · Spacebar shoot · Esc pause

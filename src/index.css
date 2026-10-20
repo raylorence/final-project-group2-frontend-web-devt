@@ -69,7 +69,18 @@ input:focus {
 .container {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px;
+}
+
+/* Make the navbar tight and compact */
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 24px; /* Was 14px 24px */
+  background: #0d1117;
+  border-bottom: 1px solid #30363d;
+  height: 50px; /* Force a specific tight height */
 }
 
 .card {

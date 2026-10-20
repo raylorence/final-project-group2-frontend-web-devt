@@ -1,5 +1,6 @@
 import {
-  CANVAS_W, CANVAS_H, PLAYER, BULLET, ENEMY_TYPES, DIFFICULTY, DIRECTIONS, MAPS,
+  CANVAS_W, CANVAS_H, WORLD_W, WORLD_H, HUD_HEIGHT,
+  PLAYER, BULLET, ENEMY_TYPES, DIFFICULTY, DIRECTIONS, MAPS,
 } from "./constants.js";
 
 export function createEngine(onGameOver) {
@@ -11,14 +12,13 @@ export function createEngine(onGameOver) {
 
   function reset() {
     const map = pickMap();
-    const startX = map.spawn.x;
-    const startY = map.spawn.y;
-
+    
     state = {
       mapName: map.name,
       player: {
-        x: startX,
-        y: startY,
+        x: map.spawn.x,
+        // Push spawn down if a map spawns them too close to the top
+        y: Math.max(map.spawn.y, HUD_HEIGHT + 30), 
         size: PLAYER.size,
         health: PLAYER.maxHealth,
         invulnUntil: 0,
@@ -37,12 +37,31 @@ export function createEngine(onGameOver) {
       spawnInterval: DIFFICULTY.initialSpawnMs,
       alive: true,
       screenShake: 0,
-      gameOverFired: false, // ensures onGameOver runs exactly once
+      gameOverFired: false,
+      camera: { x: 0, y: 0 },
     };
+    
+    updateCamera();
   }
 
   reset();
 
+  // ---------- Camera ----------
+  function updateCamera() {
+    let targetX = state.player.x - CANVAS_W / 2;
+    let targetY = state.player.y - CANVAS_H / 2;
+
+    // Clamp camera to world bounds
+    targetX = Math.max(0, Math.min(targetX, WORLD_W - CANVAS_W));
+    
+    // Clamp camera so it doesn't scroll up past the HUD
+    targetY = Math.max(0, Math.min(targetY, WORLD_H - CANVAS_H));
+
+    state.camera.x += (targetX - state.camera.x) * 0.1;
+    state.camera.y += (targetY - state.camera.y) * 0.1;
+  }
+
+  // ---------- Collision ----------
   function circleRectOverlap(cx, cy, cr, rx, ry, rw, rh) {
     const nx = Math.max(rx, Math.min(cx, rx + rw));
     const ny = Math.max(ry, Math.min(cy, ry + rh));
@@ -52,6 +71,9 @@ export function createEngine(onGameOver) {
   }
 
   function circleHitsAnyWall(cx, cy, cr) {
+    // Prevent walking into the HUD dead zone
+    if (cy - cr < HUD_HEIGHT) return true; 
+
     for (const w of state.walls) {
       if (circleRectOverlap(cx, cy, cr, w.x, w.y, w.w, w.h)) return true;
     }
@@ -74,6 +96,7 @@ export function createEngine(onGameOver) {
     return distance(ax, ay, bx, by) < ar + br;
   }
 
+  // ---------- Spawning ----------
   function pickEnemyType() {
     const entries = Object.entries(ENEMY_TYPES);
     const total = entries.reduce((s, [, t]) => s + t.spawnWeight, 0);
@@ -90,10 +113,11 @@ export function createEngine(onGameOver) {
     let sx = x, sy = y;
     if (x === undefined) {
       const edge = Math.floor(Math.random() * 4);
-      if (edge === 0) { sx = Math.random() * CANVAS_W; sy = -30; }
-      else if (edge === 1) { sx = CANVAS_W + 30; sy = Math.random() * CANVAS_H; }
-      else if (edge === 2) { sx = Math.random() * CANVAS_W; sy = CANVAS_H + 30; }
-      else { sx = -30; sy = Math.random() * CANVAS_H; }
+      // Don't spawn on the top edge if it's inside the HUD
+      if (edge === 0) { sx = Math.random() * WORLD_W; sy = HUD_HEIGHT + 10; } 
+      else if (edge === 1) { sx = WORLD_W + 30; sy = Math.random() * WORLD_H; }
+      else if (edge === 2) { sx = Math.random() * WORLD_W; sy = WORLD_H + 30; }
+      else { sx = -30; sy = Math.random() * WORLD_H; }
     }
     const size = sizeOverride ?? t.size;
     if (circleHitsAnyWall(sx, sy, size / 2)) {
@@ -129,6 +153,7 @@ export function createEngine(onGameOver) {
     }
   }
 
+  // ---------- Input ----------
   function resolveDirection(up, down, left, right) {
     if (up && left) return DIRECTIONS.NW;
     if (up && right) return DIRECTIONS.NE;
@@ -154,13 +179,15 @@ export function createEngine(onGameOver) {
 
       const len = Math.hypot(dir.dx, dir.dy);
       const step = PLAYER.speed * (1 / 60);
+      
       const moved = tryMoveCircle(
         p.x, p.y, p.size / 2,
         (dir.dx / len) * step,
         (dir.dy / len) * step
       );
-      p.x = Math.max(p.size / 2, Math.min(CANVAS_W - p.size / 2, moved.x));
-      p.y = Math.max(p.size / 2, Math.min(CANVAS_H - p.size / 2, moved.y));
+      
+      p.x = Math.max(p.size / 2, Math.min(WORLD_W - p.size / 2, moved.x));
+      p.y = Math.max(HUD_HEIGHT + p.size / 2, Math.min(WORLD_H - p.size / 2, moved.y));
     }
 
     if (keys.has(" ") && now - p.lastShotAt >= PLAYER.fireCooldown) {
@@ -187,6 +214,7 @@ export function createEngine(onGameOver) {
     });
   }
 
+  // ---------- AI ----------
   const ENEMY_DIRS = [
     DIRECTIONS.N, DIRECTIONS.NE, DIRECTIONS.E, DIRECTIONS.SE,
     DIRECTIONS.S, DIRECTIONS.SW, DIRECTIONS.W, DIRECTIONS.NW,
@@ -203,9 +231,8 @@ export function createEngine(onGameOver) {
     });
     const r = e.size / 2;
     for (const d of candidates) {
-      const len = Math.hypot(d.dx, d.dy) || 1;
-      const nx = e.x + (d.dx / len) * 4;
-      const ny = e.y + (d.dy / len) * 4;
+      const nx = e.x + d.dx * 4;
+      const ny = e.y + d.dy * 4;
       if (!circleHitsAnyWall(nx, ny, r)) return d;
     }
     return candidates[0];
@@ -219,38 +246,36 @@ export function createEngine(onGameOver) {
     );
   }
 
+  // ---------- Update ----------
   function update(delta, now) {
-    // HARD STOP after game over — nothing advances, nothing respawns,
-    // and onGameOver is never fired twice.
     if (!state.alive) return;
 
     const dt = delta / 1000;
     state.elapsed += delta;
 
-    // --- bullets (now collide with walls) ---
+    updateCamera();
+
+    // Bullets
     for (let i = state.bullets.length - 1; i >= 0; i--) {
       const b = state.bullets[i];
       b.x += b.vx * dt;
       b.y += b.vy * dt;
       b.age += delta;
 
-      const offScreen =
+      const outOfBounds =
         b.age > BULLET.lifetime ||
-        b.x < -20 || b.x > CANVAS_W + 20 ||
-        b.y < -20 || b.y > CANVAS_H + 20;
+        b.x < -20 || b.x > WORLD_W + 20 ||
+        b.y < HUD_HEIGHT || b.y > WORLD_H + 20; // Bullets die if they hit the HUD
 
       const hitWall = circleHitsAnyWall(b.x, b.y, b.size / 2);
 
-      if (offScreen || hitWall) {
-        if (hitWall) {
-          // tiny spark so players get feedback that shots are being blocked
-          explode(b.x, b.y, "#7d8590", 3);
-        }
+      if (outOfBounds || hitWall) {
+        if (hitWall) explode(b.x, b.y, "#7d8590", 3);
         state.bullets.splice(i, 1);
       }
     }
 
-    // --- spawn pacing (time-based) ---
+    // Spawning
     state.spawnInterval = computeSpawnInterval(state.elapsed);
     state.spawnAccum += delta;
     if (state.spawnAccum >= state.spawnInterval) {
@@ -264,18 +289,21 @@ export function createEngine(onGameOver) {
       }
     }
 
-    // --- enemies ---
+    // Enemies
     const p = state.player;
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
+      
       const dir = pickEnemyDirection(e, p);
       const len = Math.hypot(dir.dx, dir.dy) || 1;
       const step = e.speed * dt;
+      
       const moved = tryMoveCircle(
         e.x, e.y, e.size / 2,
         (dir.dx / len) * step,
         (dir.dy / len) * step
       );
+      
       e.x = moved.x;
       e.y = moved.y;
       e.wobble += dt * 6;
@@ -284,7 +312,7 @@ export function createEngine(onGameOver) {
         now > p.invulnUntil &&
         circlesOverlap(e.x, e.y, e.size / 2, p.x, p.y, p.size / 2)
       ) {
-        p.health = Math.max(0, p.health - e.damage); // clamp so it never overshoots
+        p.health = Math.max(0, p.health - e.damage);
         p.invulnUntil = now + PLAYER.invulnMs;
         explode(p.x, p.y, "#f85149", 12);
         state.enemies.splice(i, 1);
@@ -307,7 +335,7 @@ export function createEngine(onGameOver) {
       }
     }
 
-    // --- bullet vs enemy ---
+    // Bullets vs Enemies
     for (let bi = state.bullets.length - 1; bi >= 0; bi--) {
       const b = state.bullets[bi];
       let consumed = false;
@@ -332,7 +360,7 @@ export function createEngine(onGameOver) {
       if (consumed) state.bullets.splice(bi, 1);
     }
 
-    // --- particles ---
+    // Particles
     for (let i = state.particles.length - 1; i >= 0; i--) {
       const pt = state.particles[i];
       pt.x += pt.vx * dt;
@@ -348,31 +376,42 @@ export function createEngine(onGameOver) {
     }
   }
 
+  // ---------- Draw ----------
   function draw(ctx) {
+    // 1. Draw the game world
+    ctx.fillStyle = "#070b10";
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
     ctx.save();
+
     if (state.screenShake > 0) {
       const s = state.screenShake;
       ctx.translate((Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
     }
 
+    ctx.translate(-Math.round(state.camera.x), -Math.round(state.camera.y));
+
+    // World Background
     const grad = ctx.createRadialGradient(
-      CANVAS_W / 2, CANVAS_H / 2, 60,
-      CANVAS_W / 2, CANVAS_H / 2, Math.max(CANVAS_W, CANVAS_H)
+      WORLD_W / 2, WORLD_H / 2, 60,
+      WORLD_W / 2, WORLD_H / 2, Math.max(WORLD_W, WORLD_H)
     );
     grad.addColorStop(0, "#1a2430");
     grad.addColorStop(1, "#070b10");
     ctx.fillStyle = grad;
-    ctx.fillRect(-20, -20, CANVAS_W + 40, CANVAS_H + 40);
+    ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
+    // World Grid
     ctx.strokeStyle = "rgba(78, 201, 176, 0.06)";
     ctx.lineWidth = 1;
-    for (let x = 0; x < CANVAS_W; x += 45) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
+    for (let x = 0; x < WORLD_W; x += 45) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_H); ctx.stroke();
     }
-    for (let y = 0; y < CANVAS_H; y += 45) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
+    for (let y = 0; y < WORLD_H; y += 45) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_W, y); ctx.stroke();
     }
 
+    // Walls
     for (const w of state.walls) {
       ctx.fillStyle = "rgba(0,0,0,0.4)";
       ctx.fillRect(w.x + 3, w.y + 3, w.w, w.h);
@@ -386,6 +425,7 @@ export function createEngine(onGameOver) {
       ctx.strokeRect(w.x + 4, w.y + 4, w.w - 8, w.h - 8);
     }
 
+    // Particles
     for (const pt of state.particles) {
       ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
       ctx.fillStyle = pt.color;
@@ -395,6 +435,7 @@ export function createEngine(onGameOver) {
     }
     ctx.globalAlpha = 1;
 
+    // Enemies
     for (const e of state.enemies) {
       const spikes = 10;
       const outer = e.size / 2;
@@ -413,6 +454,7 @@ export function createEngine(onGameOver) {
       ctx.strokeStyle = "rgba(0,0,0,0.4)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
+      
       if (e.maxHp > 1 && e.hp < e.maxHp) {
         ctx.fillStyle = "rgba(0,0,0,0.6)";
         ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2 - 8, e.size, 3);
@@ -421,29 +463,31 @@ export function createEngine(onGameOver) {
       }
     }
 
+    // Bullets
     for (const b of state.bullets) {
+      const angle = Math.atan2(b.vy, b.vx);
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(angle);
       ctx.shadowColor = "#4ec9b0";
       ctx.shadowBlur = 10;
       ctx.fillStyle = "#a5f3e0";
+      const w = b.size * 0.7; 
+      const h = b.size * 1.5; 
       ctx.beginPath();
-      ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
+      if (ctx.roundRect) ctx.roundRect(-w / 2, -h / 2, w, h, w / 2);
+      else ctx.arc(0, 0, w / 2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
+      ctx.restore();
     }
 
+    // Player
     const p = state.player;
-
-    // Clean i-frame blink: always ends visible, never depends on a stale
-    // timestamp. Uses "time remaining" so it's stable frame-to-frame.
     let visible = true;
     if (p.invulnUntil > 0) {
       const remaining = p.invulnUntil - performance.now();
-      if (remaining > 0) {
-        // blink every 80ms while remaining > 0, but only hide on even ticks
-        visible = Math.floor(remaining / 80) % 2 === 0;
-      }
+      if (remaining > 0) visible = Math.floor(remaining / 80) % 2 === 0;
     }
-    // Always draw the player when dead so the corpse is visible under the game-over overlay
     if (!state.alive) visible = true;
 
     ctx.save();
@@ -468,33 +512,48 @@ export function createEngine(onGameOver) {
     }
     ctx.restore();
 
-    // HUD
-    ctx.fillStyle = "rgba(0,0,0,0.45)";
-    ctx.fillRect(0, 0, CANVAS_W, 42);
+    ctx.restore(); // End camera translation
 
+    // 2. Draw the HUD Dead Zone (Always on top)
+    // Draw a solid background for the HUD
+    ctx.fillStyle = "#0d1117";
+    ctx.fillRect(0, 0, CANVAS_W, HUD_HEIGHT);
+    
+    // Draw a border line under the HUD
+    ctx.strokeStyle = "#30363d";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, HUD_HEIGHT);
+    ctx.lineTo(CANVAS_W, HUD_HEIGHT);
+    ctx.stroke();
+
+    // Draw Health Bar (Centered vertically in the 40px space)
     const hpW = 220;
     const hp = p.health / PLAYER.maxHealth;
+    const barY = (HUD_HEIGHT - 16) / 2; // Centers a 16px tall bar in 40px
+    
     ctx.fillStyle = "#21262d";
-    ctx.fillRect(14, 12, hpW, 18);
+    ctx.fillRect(14, barY, hpW, 16);
     ctx.fillStyle = hp > 0.5 ? "#3fb950" : hp > 0.25 ? "#d29922" : "#f85149";
-    ctx.fillRect(14, 12, hpW * hp, 18);
+    ctx.fillRect(14, barY, hpW * hp, 16);
     ctx.strokeStyle = "#30363d";
     ctx.lineWidth = 1;
-    ctx.strokeRect(14, 12, hpW, 18);
+    ctx.strokeRect(14, barY, hpW, 16);
+    
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 12px system-ui";
+    ctx.font = "bold 11px system-ui";
     ctx.textAlign = "left";
-    ctx.fillText(`HP ${Math.ceil(p.health)}`, 22, 26);
+    ctx.fillText(`HP ${Math.ceil(p.health)}`, 22, barY + 12);
 
+    // Draw Score & Time (Centered vertically in the 40px space)
     ctx.textAlign = "right";
-    ctx.font = "bold 16px system-ui";
+    ctx.font = "bold 15px system-ui";
     ctx.fillStyle = "#4ec9b0";
-    ctx.fillText(`KILLS ${state.score}`, CANVAS_W - 16, 26);
-    ctx.font = "12px system-ui";
+    ctx.fillText(`KILLS ${state.score}`, CANVAS_W - 16, barY + 12);
+    
+    ctx.font = "11px system-ui";
     ctx.fillStyle = "#7d8590";
-    ctx.fillText(`${(state.elapsed / 1000).toFixed(1)}s · ${state.mapName}`, CANVAS_W - 16, 56);
-
-    ctx.restore();
+    ctx.fillText(`${(state.elapsed / 1000).toFixed(1)}s · ${state.mapName}`, CANVAS_W - 16, barY + 26);
   }
 
   return {
