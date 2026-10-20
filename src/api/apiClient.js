@@ -1,6 +1,6 @@
 /**
  * Frontend API Configuration and Base Fetch Utility
- * 
+ *
  * This module manages:
  * 1. Base URL configuration (from Vite environment or fallback to localhost:5000)
  * 2. Token storage (persisted in localStorage with in-memory fallback)
@@ -10,16 +10,15 @@
  */
 
 const getInitialBaseUrl = () => {
+    let url = 'http://localhost:5000';
     // Check Vite environment variable first (VITE_API_URL)
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL;
+        url = import.meta.env.VITE_API_URL;
+    } else if (typeof process !== 'undefined' && process.env && (process.env.VITE_API_URL || process.env.API_BASE_URL)) {
+        // Check Node/process environment variable if available
+        url = process.env.VITE_API_URL || process.env.API_BASE_URL;
     }
-    // Check Node/process environment variable if available
-    if (typeof process !== 'undefined' && process.env && (process.env.VITE_API_URL || process.env.API_BASE_URL)) {
-        return process.env.VITE_API_URL || process.env.API_BASE_URL;
-    }
-    // Default fallback to local Express server
-    return 'http://localhost:5000';
+    return String(url).replace(/\/+$/, '');
 };
 
 const API_CONFIG = {
@@ -129,7 +128,7 @@ export const removeStoredUser = () => {
  * - JWT Authorization header insertion (if authenticated or token provided)
  * - JSON body serialization
  * - Unified HTTP error parsing
- * 
+ *
  * @param {string} endpoint - API endpoint path (e.g. '/api/auth/login')
  * @param {object} options - Fetch options (method, headers, body, requiresAuth, token, etc.)
  * @returns {Promise<any>} Parsed response data from server
@@ -166,14 +165,19 @@ export const apiRequest = async (endpoint, options = {}) => {
         config.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
 
-    // Construct full URL
-    const url = endpoint.startsWith('http://') || endpoint.startsWith('https://')
-        ? endpoint
-        : `${API_CONFIG.BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+    // Construct full URL with safe slash joining
+    let url;
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+        url = endpoint;
+    } else {
+        const cleanBase = (API_CONFIG.BASE_URL || '').replace(/\/+$/, '');
+        const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        url = `${cleanBase}${cleanEndpoint}`;
+    }
 
     try {
         const response = await fetch(url, config);
-        
+
         let responseData;
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -184,10 +188,22 @@ export const apiRequest = async (endpoint, options = {}) => {
 
         // Handle non-2xx HTTP responses gracefully
         if (!response.ok) {
+            // Automatically clear invalidated/expired authentication tokens on 401 Unauthorized
+            if (response.status === 401) {
+                removeToken();
+                removeStoredUser();
+                if (typeof sessionStorage !== 'undefined') {
+                    sessionStorage.removeItem('hk_session');
+                }
+                if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+                    window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { endpoint, responseData } }));
+                }
+            }
+
             const errorMessage = (responseData && responseData.message)
                 || (responseData && typeof responseData === 'string' ? responseData : null)
                 || `Request failed with status ${response.status}`;
-                
+
             const error = new Error(errorMessage);
             error.status = response.status;
             error.data = responseData;
