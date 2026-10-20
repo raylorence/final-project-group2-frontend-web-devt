@@ -127,9 +127,9 @@ export function playGameOver() {
 }
 
 let lastHeartbeat = 0;
-export function playHeartbeat(now) {
-  if (now - lastHeartbeat < 800) return;
-  lastHeartbeat = now;
+export function playHeartbeat(elapsed) {
+  if (elapsed - lastHeartbeat < 800) return;
+  lastHeartbeat = elapsed;
   playOsc("sine", 55, 55, 0.1, 0.4);
   setTimeout(() => playOsc("sine", 48, 48, 0.1, 0.3), 150);
 }

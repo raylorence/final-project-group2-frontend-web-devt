@@ -48,8 +48,8 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
 
       // frozenRef is checked FIRST - once true, nothing updates ever again
       if (!frozenRef.current && !pausedRef.current) {
-        engineRef.current.handleInput(keysRef.current, t); // FIXED: Removed 'delta'
-        engineRef.current.update(delta, t);
+        engineRef.current.handleInput(keysRef.current, delta); //
+        engineRef.current.update(delta);
       }
       
       engineRef.current.draw(ctx); // FIXED: Removed 'pausedRef.current'
