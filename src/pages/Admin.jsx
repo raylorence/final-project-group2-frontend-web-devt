@@ -48,13 +48,19 @@ export default function Admin() {
     }
   };
 
-  // Real-time filtered lists
-  const filteredUsers = useMemo(() => {
-    if (!userSearch.trim()) return users;
-    const q = userSearch.toLowerCase().trim();
-    return users.filter((u) => u.username?.toLowerCase().includes(q));
-  }, [users, userSearch]);
+  // Exclude admin accounts so only non-admin players appear in the list
+  const playerUsers = useMemo(() => {
+    return users.filter((u) => u.role !== "admin");
+  }, [users]);
 
+  // Real-time filtered players list
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return playerUsers;
+    const q = userSearch.toLowerCase().trim();
+    return playerUsers.filter((u) => u.username?.toLowerCase().includes(q));
+  }, [playerUsers, userSearch]);
+
+  // Real-time filtered scores list
   const filteredScores = useMemo(() => {
     if (!scoreSearch.trim()) return scores;
     const q = scoreSearch.toLowerCase().trim();
@@ -83,7 +89,7 @@ export default function Admin() {
           >
             <h3 style={{ margin: 0 }}>
               Players ({filteredUsers.length}
-              {userSearch ? ` / ${users.length}` : ""})
+              {userSearch ? ` / ${playerUsers.length}` : ""})
             </h3>
             <input
                 type="text"
@@ -101,7 +107,9 @@ export default function Admin() {
 
           <div style={{ maxHeight: "500px", overflowY: "auto" }}>
             {filteredUsers.length === 0 ? (
-                <p className="muted">No players found matching "{userSearch}".</p>
+                <p className="muted">
+                  {userSearch ? `No players found matching "${userSearch}".` : "No registered players found."}
+                </p>
             ) : (
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
@@ -126,20 +134,18 @@ export default function Admin() {
                         <td style={{ padding: 10 }}>{u.username}</td>
                         <td style={{ padding: 10 }} className="muted">{u.role}</td>
                         <td style={{ padding: 10, textAlign: "right" }}>
-                          {u.role !== "admin" && (
-                              <button
-                                  className="danger"
-                                  onClick={() =>
-                                      setPendingAction({
-                                        type: "user",
-                                        id: u._id,
-                                        message: `Permanently delete user "${u.username}" and all their recorded scores?`,
-                                      })
-                                  }
-                              >
-                                Delete
-                              </button>
-                          )}
+                          <button
+                              className="danger"
+                              onClick={() =>
+                                  setPendingAction({
+                                    type: "user",
+                                    id: u._id,
+                                    message: `Permanently delete player "${u.username}" and all their recorded scores?`,
+                                  })
+                              }
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                   ))}
