@@ -44,7 +44,7 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
         engineRef.current.update(delta, t);
       }
 
-      engineRef.current.draw(ctx);
+      engineRef.current.draw(ctx, pausedRef.current);
 
 
       rafRef.current = requestAnimationFrame(loop);

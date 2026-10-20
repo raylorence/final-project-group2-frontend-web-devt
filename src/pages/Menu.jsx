@@ -37,9 +37,20 @@ export default function Menu() {
           <p className="muted" style={{ marginBottom: 22 }}>
             You are the body's final line of defense. Survive the viral swarm.
           </p>
-          <Link to="/play">
-            <button style={{ fontSize: 18, padding: "14px 42px" }}>▶ Deploy Capsule</button>
-          </Link>
+          {user?.role === "admin" ? (
+            <div>
+              <p style={{ color: "#f85149", marginBottom: 12 }}>
+                Admin accounts cannot play or submit scores. Use the Admin Dashboard to moderate users and scores.
+              </p>
+              <Link to="/admin">
+                <button style={{ fontSize: 18, padding: "14px 42px" }}>🛡 Open Admin Dashboard</button>
+              </Link>
+            </div>
+          ) : (
+            <Link to="/play">
+              <button style={{ fontSize: 18, padding: "14px 42px" }}>▶ Deploy Capsule</button>
+            </Link>
+          )}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
