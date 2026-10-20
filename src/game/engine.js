@@ -96,7 +96,7 @@ Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
     const spikes = 10;
     const outer = size / 2 - 2;
     const inner = outer * 0.65;
-    ctx.translate(size / 2, size / 2);
+
     ctx.fillStyle = t.color;
     ctx.beginPath();
 
@@ -132,36 +132,6 @@ export function createEngine(onGameOver) {
 
     const map = pickMap();
 
-    state = {
-      mapName: map.name,
-      player: {
-        x: map.spawn.x,
-        y: Math.max(map.spawn.y, HUD_HEIGHT + 30),
-        size: PLAYER.size,
-        health: PLAYER.maxHealth,
-        invulnUntil: 0,
-        lastShotAt: -PLAYER.fireCooldown,
-        facingX: 0,
-        facingY: -1,
-        aimAngle: -Math.PI / 2,
-      },
-      walls: map.walls.map((w) => ({ ...w })),
-      bullets: [],
-      enemies: [],
-      particles: [],
-      score: 0,
-      elapsed: 0,
-      spawnAccum: 0,
-      spawnInterval: DIFFICULTY.initialSpawnMs,
-      alive: true,
-      screenShake: 0,
-      gameOverFired: false,
-      surgeFired: false,
-      camera: { x: 0, y: 0 },
-    };
-
-    updateCamera();
-
     // Generate 35 slow-drifting plasma motes / red blood cells
     const bgMotes = [];
     for (let i = 0; i < 35; i++) {
@@ -188,14 +158,14 @@ export function createEngine(onGameOver) {
         facingX: 0,
         facingY: -1,
         aimAngle: -Math.PI / 2,
-        muzzleFlash: 0, // <-- ADDED: Muzzle flash duration tracker
+        muzzleFlash: 0,
       },
       walls: map.walls.map((w) => ({ ...w })),
       bullets: [],
       enemies: [],
       particles: [],
-      bgMotes,        // <-- ADDED: Microscopic depth motes
-      trailTimer: 0,  // <-- ADDED: Propulsion bubble throttle
+      bgMotes,
+      trailTimer: 0,
       score: 0,
       elapsed: 0,
       spawnAccum: 0,
@@ -203,9 +173,11 @@ export function createEngine(onGameOver) {
       alive: true,
       screenShake: 0,
       gameOverFired: false,
+      surgeFired: false,
       camera: { x: 0, y: 0 },
     };
 
+    updateCamera();
   }
 
   reset();
@@ -407,7 +379,7 @@ export function createEngine(onGameOver) {
       p.aimAngle = moveDir.angle;
 
       const len = Math.hypot(moveDir.dx, moveDir.dy);
-      const step = PLAYER.speed * (delta / 1000);
+      const step = PLAYER.speed * dt;
 
       const moved = tryMoveCircle(
           p.x, p.y, p.size / 2,
@@ -418,7 +390,6 @@ export function createEngine(onGameOver) {
       p.x = Math.max(p.size / 2, Math.min(WORLD_W - p.size / 2, moved.x));
       p.y = Math.max(HUD_HEIGHT + p.size / 2, Math.min(WORLD_H - p.size / 2, moved.y));
 
-      // Bubble trail must be INSIDE if (moveDir) so moveDir and len exist
       state.trailTimer = (state.trailTimer || 0) + delta;
       if (state.trailTimer >= 60) {
         state.trailTimer = 0;
@@ -537,7 +508,7 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Update ----------
-  function update(delta, now) {
+  function update(delta) {
     if (!state.alive) return;
 
     const dt = delta / 1000;
@@ -604,7 +575,7 @@ export function createEngine(onGameOver) {
 
     // Heartbeat logic moved here from draw()
     if (p.health <= 25 && p.health > 0) {
-      playHeartbeat(now);
+      playHeartbeat(state.elapsed);
     }
 
     for (let i = state.enemies.length - 1; i >= 0; i--) {
