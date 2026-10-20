@@ -28,28 +28,95 @@ const BULLET_SPRITE = createSprite((ctx, size) => {
 }, 30);
 
 // Pre-render all enemy types
+
 Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
   ENEMY_SPRITES[type] = createSprite((ctx, size) => {
-    const spikes = 10;
-    const outer = size / 2 - 2; // Padding
-    const inner = outer * 0.65;
     ctx.translate(size / 2, size / 2);
+
+    // Bacterial worm: rod-shaped cell with wavy flagella
+    if (type === "worm") {
+      // Wavy flagella around the body
+      ctx.strokeStyle = "#56B8FF";
+      ctx.lineWidth = 1.5;
+
+      for (let i = 0; i < 7; i++) {
+        const side = i % 2 === 0 ? -1 : 1;
+        const startX = side * (size * 0.22);
+        const startY = -size * 0.1 + i * size * 0.035;
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+
+        for (let j = 1; j <= 8; j++) {
+          const direction = side === -1 ? -1 : 1;
+          const x = startX + direction * j * size * 0.045;
+          const y = startY + Math.sin(j * 1.3 + i) * size * 0.045;
+          ctx.lineTo(x, y);
+        }
+
+        ctx.stroke();
+      }
+
+      // Rounded rod-shaped bacterial body
+      ctx.beginPath();
+      ctx.roundRect(
+        -size * 0.32,
+        -size * 0.17,
+        size * 0.64,
+        size * 0.34,
+        size * 0.17
+      );
+      ctx.fillStyle = "#168BFF";
+      ctx.fill();
+
+      ctx.strokeStyle = "#8AD5FF";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Inner cell texture
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.arc(
+          -size * 0.2 + i * size * 0.1,
+          Math.sin(i * 1.5) * size * 0.06,
+          size * 0.025,
+          0,
+          Math.PI * 2
+        );
+        ctx.fillStyle = "#0754A6";
+        ctx.fill();
+      }
+
+      return;
+    }
+
+    // Keep the existing spiky design for other enemies
+    const spikes = 10;
+    const outer = size / 2 - 2;
+    const inner = outer * 0.65;
+
     ctx.fillStyle = t.color;
     ctx.beginPath();
+
     for (let i = 0; i < spikes * 2; i++) {
       const r = i % 2 === 0 ? outer : inner;
       const a = (i / (spikes * 2)) * Math.PI * 2;
       const px = Math.cos(a) * r;
       const py = Math.sin(a) * r;
-      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
     }
+
     ctx.closePath();
     ctx.fill();
+
     ctx.strokeStyle = "rgba(0,0,0,0.4)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
-  }, t.size + 4); // Add padding for the stroke
+  }, t.size + 4);
 });
+
 
 export function createEngine(onGameOver) {
   let state = null;
@@ -140,12 +207,13 @@ export function createEngine(onGameOver) {
 
   // ---------- Spawning ----------
   function pickEnemyType() {
-    // Fast manual weighted pick
-    const r = Math.random() * 11; // Sum of weights (6 + 3 + 2)
-    if (r < 6) return "fast";
-    if (r < 9) return "tank";
-    return "splitter";
-  }
+  const r = Math.random() * 12;
+
+  if (r < 5) return "fast";
+  if (r < 8) return "tank";
+  if (r < 10) return "splitter";
+  return "worm";
+}
 
   function spawnEnemy(typeName, x, y, sizeOverride, hpOverride) {
     const t = ENEMY_TYPES[typeName];
@@ -668,28 +736,109 @@ export function createEngine(onGameOver) {
     }
     ctx.globalAlpha = 1;
 
-    // Enemies (Using Pre-rendered Sprites)
+    
+    // Enemies
     for (let i = 0; i < state.enemies.length; i++) {
       const e = state.enemies[i];
-      const sprite = ENEMY_SPRITES[e.type];
 
-      // We rotate the canvas slightly to maintain the "wobble" effect
       ctx.save();
       ctx.translate(e.x, e.y);
-      ctx.rotate(e.wobble);
 
-      const scale = (e.size + 4) / sprite.width;
-      ctx.scale(scale, scale);
+      if (e.type === "worm") {
+        const phase = state.elapsed * 0.012 + e.wobble;
+        const size = e.size;
 
-      ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
+        // Animated flagella
+        ctx.strokeStyle = "#56B8FF";
+        ctx.lineWidth = 1.5;
+
+        for (let j = 0; j < 6; j++) {
+          const side = j % 2 === 0 ? -1 : 1;
+          const startX = side * size * 0.22;
+          const startY = (j - 2.5) * size * 0.06;
+
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+
+          for (let k = 1; k <= 8; k++) {
+            const x = startX + side * k * size * 0.045;
+            const y =
+              startY +
+              Math.sin(phase + k * 0.9 + j * 1.3) * size * 0.08;
+
+            ctx.lineTo(x, y);
+          }
+
+          ctx.stroke();
+        }
+
+        // Wiggling bacterial body
+        ctx.rotate(Math.sin(phase) * 0.18);
+        ctx.translate(0, Math.sin(phase * 1.5) * size * 0.06);
+
+        ctx.beginPath();
+        ctx.roundRect(
+          -size * 0.36,
+          -size * 0.18,
+          size * 0.72,
+          size * 0.36,
+          size * 0.18
+        );
+        ctx.fillStyle = "#168BFF";
+        ctx.fill();
+
+        ctx.strokeStyle = "#8AD5FF";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Details inside the cell
+        for (let j = 0; j < 5; j++) {
+          ctx.beginPath();
+          ctx.arc(
+            -size * 0.22 + j * size * 0.11,
+            Math.sin(phase + j * 1.5) * size * 0.05,
+            size * 0.025,
+            0,
+            Math.PI * 2
+          );
+          ctx.fillStyle = "#0754A6";
+          ctx.fill();
+        }
+      } else {
+        // Keep the original sprites for other enemies
+        const sprite = ENEMY_SPRITES[e.type];
+
+        ctx.rotate(e.wobble);
+
+        const scale = (e.size + 4) / sprite.width;
+        ctx.scale(scale, scale);
+
+        ctx.drawImage(
+          sprite,
+          -sprite.width / 2,
+          -sprite.height / 2
+        );
+      }
+
       ctx.restore();
 
       // HP Bar
       if (e.maxHp > 1 && e.hp < e.maxHp) {
         ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2 - 8, e.size, 3);
+        ctx.fillRect(
+          e.x - e.size / 2,
+          e.y - e.size / 2 - 8,
+          e.size,
+          3
+        );
+
         ctx.fillStyle = "#3fb950";
-        ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2 - 8, e.size * (e.hp / e.maxHp), 3);
+        ctx.fillRect(
+          e.x - e.size / 2,
+          e.y - e.size / 2 - 8,
+          e.size * (e.hp / e.maxHp),
+          3
+        );
       }
     }
 
