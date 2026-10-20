@@ -200,5 +200,34 @@ export const MAPS = [
       { x: 1315, y: 790, w: 150, h: 150 },
       { x: 1565, y: 790, w: 150, h: 150 },
     ]
+  },
+  {
+    name: "Labyrinth",
+    spawn: { x: 800, y: 520 },
+    walls: [
+      // ===== OUTER RING (solid border) =====
+      { x: 0,    y: 40,  w: 1600, h: 50 },  // top
+      { x: 0,    y: 950, w: 1600, h: 50 },  // bottom
+      { x: 0,    y: 40,  w: 50,   h: 960 }, // left
+      { x: 1550, y: 40,  w: 50,   h: 960 }, // right
+
+      // ===== MIDDLE RING (gaps: top-left & bottom-right) =====
+      { x: 400,  y: 180, w: 1000, h: 50 },  // top (gap at x 200-400)
+      { x: 200,  y: 330, w: 50,   h: 530 }, // left (gap at y 180-330)
+      { x: 1350, y: 180, w: 50,   h: 530 }, // right (gap at y 710-860)
+      { x: 200,  y: 810, w: 1000, h: 50 },  // bottom (gap at x 1200-1400)
+
+      // ===== INNER RING (gaps: top-right & bottom-left) =====
+      { x: 400,  y: 320, w: 600,  h: 50 },  // top (gap at x 1000-1200)
+      { x: 1150, y: 420, w: 50,   h: 300 }, // right (gap at y 320-420)
+      { x: 600,  y: 670, w: 600,  h: 50 },  // bottom (gap at x 400-600)
+      { x: 400,  y: 320, w: 50,   h: 250 }, // left (gap at y 570-720)
+
+      // ===== CENTER BOX (gap: top-left) =====
+      { x: 800,  y: 460, w: 80,   h: 20 },  // top
+      { x: 720,  y: 500, w: 20,   h: 80 },  // left
+      { x: 860,  y: 460, w: 20,   h: 120 }, // right
+      { x: 720,  y: 560, w: 160,  h: 20 },  // bottom
+    ],
   }
 ];
