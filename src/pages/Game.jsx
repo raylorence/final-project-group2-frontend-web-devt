@@ -17,6 +17,7 @@ export default function Game() {
     const [gameKey, setGameKey] = useState(0);
     const [paused, setPaused] = useState(false);
     const [pendingNav, setPendingNav] = useState(null);
+    const [isMuted, setIsMuted] = useState(getMuteState());
 
     const handleGameOver = useCallback(
         async (matchResult) => {
@@ -93,7 +94,7 @@ export default function Game() {
                         WASD move • Spacebar shoot • Esc pause
                     </div>
                     <button className="secondary" onClick={() => setIsMuted(toggleMute())}>
-                      {isMuted ? "🔇 Unmute" : "🔊 Mute"}
+                        {isMuted ? "🔇 Unmute" : "🔊 Mute"}
                     </button>
                     <button
                         className="secondary"

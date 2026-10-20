@@ -1,4 +1,9 @@
 import {
+  initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
+  playHeartbeat, playSurge
+} from "./sound.js";
+
+import {
   CANVAS_W, CANVAS_H, WORLD_W, WORLD_H, HUD_HEIGHT,
   PLAYER, BULLET, ENEMY_TYPES, DIFFICULTY, DIRECTIONS, MAPS,
 } from "./constants.js";
@@ -130,36 +135,6 @@ export function createEngine(onGameOver) {
 
     const map = pickMap();
 
-    state = {
-      mapName: map.name,
-      player: {
-        x: map.spawn.x,
-        y: Math.max(map.spawn.y, HUD_HEIGHT + 30),
-        size: PLAYER.size,
-        health: PLAYER.maxHealth,
-        invulnUntil: 0,
-        lastShotAt: -PLAYER.fireCooldown,
-        facingX: 0,
-        facingY: -1,
-        aimAngle: -Math.PI / 2,
-      },
-      walls: map.walls.map((w) => ({ ...w })),
-      bullets: [],
-      enemies: [],
-      particles: [],
-      score: 0,
-      elapsed: 0,
-      spawnAccum: 0,
-      spawnInterval: DIFFICULTY.initialSpawnMs,
-      alive: true,
-      screenShake: 0,
-      gameOverFired: false,
-      surgeFired: false,
-      camera: { x: 0, y: 0 },
-    };
-
-    updateCamera();
-
     // Generate 35 slow-drifting plasma motes / red blood cells
     const bgMotes = [];
     for (let i = 0; i < 35; i++) {
@@ -186,14 +161,14 @@ export function createEngine(onGameOver) {
         facingX: 0,
         facingY: -1,
         aimAngle: -Math.PI / 2,
-        muzzleFlash: 0, // <-- ADDED: Muzzle flash duration tracker
+        muzzleFlash: 0,
       },
       walls: map.walls.map((w) => ({ ...w })),
       bullets: [],
       enemies: [],
       particles: [],
-      bgMotes,        // <-- ADDED: Microscopic depth motes
-      trailTimer: 0,  // <-- ADDED: Propulsion bubble throttle
+      bgMotes,
+      trailTimer: 0,
       score: 0,
       elapsed: 0,
       spawnAccum: 0,
@@ -201,9 +176,11 @@ export function createEngine(onGameOver) {
       alive: true,
       screenShake: 0,
       gameOverFired: false,
+      surgeFired: false,
       camera: { x: 0, y: 0 },
     };
 
+    updateCamera();
   }
 
   reset();
@@ -286,24 +263,27 @@ export function createEngine(onGameOver) {
       let valid = false;
       let attempts = 0;
 
+      // Ensure enemies spawn off-camera and out of walls
       while (!valid && attempts < 20) {
         const edge = Math.floor(Math.random() * 4);
-        if (edge === 0) {
+        if (edge === 0) { // Top
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewTop - buffer;
-        } else if (edge === 1) {
+        } else if (edge === 1) { // Right
           sx = viewRight + buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
-        } else if (edge === 2) {
+        } else if (edge === 2) { // Bottom
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewBottom + buffer;
-        } else {
+        } else { // Left
           sx = viewLeft - buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
         }
 
+        // Prevent spawning in the top HUD area where they get paralyzed
         sy = Math.max(HUD_HEIGHT + size / 2 + 10, sy);
 
+        // Verify it's not inside the camera view and not stuck in a wall
         const inViewX = sx > viewLeft - size && sx < viewRight + size;
         const inViewY = sy > viewTop - size && sy < viewBottom + size;
 
@@ -313,18 +293,23 @@ export function createEngine(onGameOver) {
         attempts++;
       }
 
+      // Failsafe if we couldn't find an offscreen point after 20 tries
       if (!valid) {
         sx = viewRight + buffer;
         sy = Math.max(HUD_HEIGHT + size / 2 + 10, viewBottom + buffer);
       }
     }
 
+    // Push out of walls (like splitters dying on walls)
     if (x !== undefined && circleHitsAnyWall(sx, sy, size / 2)) {
       const pushAngle = Math.atan2(WORLD_H / 2 - sy, WORLD_W / 2 - sx);
       let attempts = 0;
+
       while (circleHitsAnyWall(sx, sy, size / 2) && attempts < 30) {
         sx += Math.cos(pushAngle) * 8;
         sy += Math.sin(pushAngle) * 8;
+
+        // FIX: Ensure the push-out logic doesn't shove them into the HUD
         sx = Math.max(size, Math.min(WORLD_W - size, sx));
         sy = Math.max(HUD_HEIGHT + size + 10, Math.min(WORLD_H - size, sy));
         attempts++;
@@ -348,6 +333,7 @@ export function createEngine(onGameOver) {
   }
 
   function explode(x, y, color, count = 8) {
+    // Cap particles to prevent lag
     if (state.particles.length > 200) return;
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -364,6 +350,7 @@ export function createEngine(onGameOver) {
     }
   }
 
+  // ---------- Input ----------
   function resolveDirection(up, down, left, right) {
     if (up && left) return DIRECTIONS.NW;
     if (up && right) return DIRECTIONS.NE;
@@ -377,8 +364,9 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Input ----------
-  function handleInput(keys, delta, now) {
+  function handleInput(keys, delta) {
     if (!state.alive) return;
+    const safeDelta = Math.min(50, Math.max(1, delta || 16));
     const dt = delta / 1000;
     const p = state.player;
 
@@ -395,8 +383,7 @@ export function createEngine(onGameOver) {
       p.aimAngle = moveDir.angle;
 
       const len = Math.hypot(moveDir.dx, moveDir.dy);
-      // Smooth step based on 60fps (approx 16.6ms per frame)
-      const step = PLAYER.speed * (1 / 60);
+      const step = PLAYER.speed * dt;
 
       const moved = tryMoveCircle(
           p.x, p.y, p.size / 2,
@@ -527,7 +514,7 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Update ----------
-  function update(delta, now) {
+  function update(delta) {
     if (!state.alive) return;
 
     const dt = delta / 1000;
@@ -594,7 +581,7 @@ export function createEngine(onGameOver) {
 
     // Heartbeat logic moved here from draw()
     if (p.health <= 25 && p.health > 0) {
-      playHeartbeat(now);
+      playHeartbeat(state.elapsed);
     }
 
     for (let i = state.enemies.length - 1; i >= 0; i--) {
@@ -660,8 +647,6 @@ export function createEngine(onGameOver) {
             });
           }
           return;
-        } else {
-
         }
         continue;
       }
@@ -712,7 +697,7 @@ export function createEngine(onGameOver) {
           } else {
             playHit();
           }
-          break; // Bullet is consumed, stop checking other enemies
+          break;
         }
       }
       if (consumed) state.bullets.splice(bi, 1);
@@ -1045,7 +1030,6 @@ export function createEngine(onGameOver) {
       ctx.shadowColor = "#4ec9b0";
       ctx.shadowBlur = 14;
       ctx.fillStyle = "#4ec9b0";
-      const r = p.size / 2;
       ctx.beginPath();
       ctx.arc(0, -r / 2, r, Math.PI, 0);
       ctx.lineTo(r, r / 2 - 2);
