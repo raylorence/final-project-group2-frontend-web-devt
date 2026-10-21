@@ -238,5 +238,25 @@ export const MAPS = [
       { x: 860,  y: 460, w: 20,   h: 120 }, // right
       { x: 720,  y: 560, w: 160,  h: 20 },  // bottom
     ],
+  },
+  {
+    name: "Bunker",
+    spawn: { x: 400, y: 520 },
+    walls: [
+      // ===== OUTER BORDER =====
+      { x: 0,    y: 40,  w: 1600, h: 50 },  // top
+      { x: 0,    y: 950, w: 1600, h: 50 },  // bottom
+      { x: 0,    y: 40,  w: 50,   h: 960 }, // left
+      { x: 1550, y: 40,  w: 50,   h: 960 }, // right
+ 
+      // ===== LEFT DIVIDER (floating wall, open at both ends) =====
+      { x: 180,  y: 190, w: 50,   h: 670 },
+ 
+      // ===== CENTER BLOCK =====
+      { x: 560,  y: 390, w: 340,  h: 260 },
+ 
+      // ===== WALL FROM BLOCK TO RIGHT BORDER =====
+      { x: 900,  y: 515, w: 650,  h: 50 },
+    ],
   }
 ];
