@@ -1,11 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import GameCanvas from "../game/GameCanvas.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { submitScore } from "../api/scoreApi.js";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import { toggleMute, getMuteState } from "../game/sound.js";
-import { useEffect } from "react";
 
 export default function Game() {
     const { token } = useAuth();

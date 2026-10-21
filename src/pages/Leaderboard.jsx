@@ -79,9 +79,16 @@ export default function Leaderboard() {
                 {loading ? (
                     <p className="muted">Loading scores...</p>
                 ) : filteredRows.length === 0 ? (
-                    <p className="muted">
-                        {searchQuery ? `No players found matching "${searchQuery}".` : "No scores submitted yet."}
-                    </p>
+                        <div style={{ textAlign: "center", padding: "24px 0" }}>
+                            <p className="muted">
+                                {searchQuery ? `No players found matching "${searchQuery}".` : "No scores recorded yet."}
+                            </p>
+                            {searchQuery && (
+                                <button className="secondary" onClick={() => setSearchQuery("")} style={{ marginTop: 8 }}>
+                                    Clear Search
+                                </button>
+                            )}
+                        </div>
                 ) : (
                     <>
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -108,7 +115,7 @@ export default function Leaderboard() {
                                     <td style={{ padding: 10 }} className="muted">
                                         {r.survivalTime !== undefined && r.survivalTime !== null
                                             ? `${r.survivalTime}s`
-                                            : "—"}
+                                            : "-"}
                                     </td>
                                 </tr>
                             ))}
