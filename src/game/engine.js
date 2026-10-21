@@ -1,6 +1,6 @@
 import {
   initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
-  playHeartbeat, playSurge
+  playHeartbeat
 } from "./sound.js";
 
 import {
@@ -176,7 +176,6 @@ export function createEngine(onGameOver) {
       alive: true,
       screenShake: 0,
       gameOverFired: false,
-      surgeFired: false,
       camera: { x: 0, y: 0 },
     };
 
@@ -519,11 +518,6 @@ export function createEngine(onGameOver) {
 
     const dt = delta / 1000;
     state.elapsed += delta;
-
-    if (state.elapsed > 45000 && !state.surgeFired) {
-      state.surgeFired = true;
-      playSurge();
-    }
 
     // Decay player muzzle flash
     if (state.player.muzzleFlash > 0) {
