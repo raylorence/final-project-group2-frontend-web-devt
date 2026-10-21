@@ -127,12 +127,12 @@ export function playGameOver() {
 }
 
 let lastHeartbeat = 0;
-export function playHeartbeat(now) {
+export function playHeartbeat(elapsed) {
   if (!audioCtx || isMuted) return;
   
   // Repeat every 800ms
-  if (now - lastHeartbeat < 800) return;
-  lastHeartbeat = now;
+  if (elapsed - lastHeartbeat < 800) return;
+  lastHeartbeat = elapsed;
 
   // "Lub" (High thump)
   playOsc("triangle", 140, 140, 0.12, 0.6);
