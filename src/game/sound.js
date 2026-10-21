@@ -127,13 +127,18 @@ export function playGameOver() {
 }
 
 let lastHeartbeat = 0;
-export function playHeartbeat(elapsed) {
-  if (elapsed - lastHeartbeat < 800) return;
-  lastHeartbeat = elapsed;
-  playOsc("sine", 55, 55, 0.1, 0.4);
-  setTimeout(() => playOsc("sine", 48, 48, 0.1, 0.3), 150);
-}
+export function playHeartbeat(now) {
+  if (!audioCtx || isMuted) return;
+  
+  // Repeat every 800ms
+  if (now - lastHeartbeat < 800) return;
+  lastHeartbeat = now;
 
-export function playSurge() {
-  playOsc("sine", 300, 800, 1.0, 0.2);
+  // "Lub" (High thump)
+  playOsc("triangle", 140, 140, 0.12, 0.6);
+  
+  // "Dub" (Lower thump, slightly delayed)
+  setTimeout(() => {
+    playOsc("triangle", 110, 110, 0.15, 0.5);
+  }, 180); 
 }
