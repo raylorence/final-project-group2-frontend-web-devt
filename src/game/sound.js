@@ -126,19 +126,12 @@ export function playGameOver() {
   osc.stop(audioCtx.currentTime + 1.5);
 }
 
-let lastHeartbeat = 0;
-export function playHeartbeat(elapsed) {
+export function playHeartbeatLub() {
   if (!audioCtx || isMuted) return;
-  
-  // Repeat every 800ms
-  if (elapsed - lastHeartbeat < 800) return;
-  lastHeartbeat = elapsed;
-
-  // "Lub" (High thump)
   playOsc("triangle", 140, 140, 0.12, 0.6);
-  
-  // "Dub" (Lower thump, slightly delayed)
-  setTimeout(() => {
-    playOsc("triangle", 110, 110, 0.15, 0.5);
-  }, 180); 
+}
+
+export function playHeartbeatDub() {
+  if (!audioCtx || isMuted) return;
+  playOsc("sine", 100, 100, 0.15, 0.5);
 }

@@ -1,6 +1,6 @@
 import {
   initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
-  playHeartbeat
+  playHeartbeatLub, playHeartbeatDub,
 } from "./sound.js";
 
 import {
@@ -176,6 +176,8 @@ export function createEngine(onGameOver) {
       alive: true,
       screenShake: 0,
       gameOverFired: false,
+      lastHeartbeat: 0,
+      nextHeartbeatDub: 0,
       camera: { x: 0, y: 0 },
     };
 
@@ -572,10 +574,22 @@ export function createEngine(onGameOver) {
 
 // Enemies
     const p = state.player;
-
-    // Heartbeat logic moved here from draw()
-    if (p.health <= 25 && p.health > 0) {
-      playHeartbeat(state.elapsed);
+    if (state.alive && p.health <= 25 && p.health > 0) {
+      // Trigger the "Lub" (primary beat)
+      if (state.elapsed - state.lastHeartbeat > 850) {
+        state.lastHeartbeat = state.elapsed;
+        state.nextHeartbeatDub = state.elapsed + 180; // Schedule the "Dub" 180ms later
+        playHeartbeatLub();
+      }
+      
+      // Trigger the "Dub" (secondary beat) safely inside the game loop
+      if (state.nextHeartbeatDub > 0 && state.elapsed >= state.nextHeartbeatDub) {
+        state.nextHeartbeatDub = 0; // Reset so it only plays once
+        playHeartbeatDub();
+      }
+    } else {
+      state.lastHeartbeat = 0;
+      state.nextHeartbeatDub = 0;
     }
 
     for (let i = state.enemies.length - 1; i >= 0; i--) {
@@ -1053,7 +1067,7 @@ export function createEngine(onGameOver) {
     ctx.restore(); // End Camera
 
     // --- LOW HEALTH VIGNETTE ---
-    if (state.alive && p.health <= 35) {
+    if (state.alive && p.health <= 25) {
       // Oscillates smoothly between 0 and 1 using elapsed game time
       const pulse = (Math.sin(state.elapsed * 0.008) + 1) * 0.5;
 
