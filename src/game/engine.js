@@ -1,4 +1,9 @@
 import {
+  initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
+  playHeartbeat
+} from "./sound.js";
+
+import {
   CANVAS_W, CANVAS_H, WORLD_W, WORLD_H, HUD_HEIGHT,
   PLAYER, BULLET, ENEMY_TYPES, DIFFICULTY, DIRECTIONS, MAPS,
 } from "./constants.js";
@@ -126,36 +131,9 @@ export function createEngine(onGameOver) {
   }
 
   function reset() {
+    initAudio();
+
     const map = pickMap();
-
-    state = {
-      mapName: map.name,
-      player: {
-        x: map.spawn.x,
-        y: Math.max(map.spawn.y, HUD_HEIGHT + 30),
-        size: PLAYER.size,
-        health: PLAYER.maxHealth,
-        invulnUntil: 0,
-        lastShotAt: -PLAYER.fireCooldown,
-        facingX: 0,
-        facingY: -1,
-        aimAngle: -Math.PI / 2,
-      },
-      walls: map.walls.map((w) => ({ ...w })),
-      bullets: [],
-      enemies: [],
-      particles: [],
-      score: 0,
-      elapsed: 0,
-      spawnAccum: 0,
-      spawnInterval: DIFFICULTY.initialSpawnMs,
-      alive: true,
-      screenShake: 0,
-      gameOverFired: false,
-      camera: { x: 0, y: 0 },
-    };
-
-    updateCamera();
 
     // Generate 35 slow-drifting plasma motes / red blood cells
     const bgMotes = [];
@@ -183,14 +161,14 @@ export function createEngine(onGameOver) {
         facingX: 0,
         facingY: -1,
         aimAngle: -Math.PI / 2,
-        muzzleFlash: 0, // <-- ADDED: Muzzle flash duration tracker
+        muzzleFlash: 0,
       },
       walls: map.walls.map((w) => ({ ...w })),
       bullets: [],
       enemies: [],
       particles: [],
-      bgMotes,        // <-- ADDED: Microscopic depth motes
-      trailTimer: 0,  // <-- ADDED: Propulsion bubble throttle
+      bgMotes,
+      trailTimer: 0,
       score: 0,
       elapsed: 0,
       spawnAccum: 0,
@@ -201,6 +179,7 @@ export function createEngine(onGameOver) {
       camera: { x: 0, y: 0 },
     };
 
+    updateCamera();
   }
 
   reset();
@@ -218,7 +197,6 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Collision ----------
-  // Fast distance check (no Math.hypot)
   function distSq(ax, ay, bx, by) {
     const dx = ax - bx;
     const dy = ay - by;
@@ -371,6 +349,7 @@ export function createEngine(onGameOver) {
     }
   }
 
+  // ---------- Input ----------
   function resolveDirection(up, down, left, right) {
     if (up && left) return DIRECTIONS.NW;
     if (up && right) return DIRECTIONS.NE;
@@ -384,8 +363,9 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Input ----------
-  function handleInput(keys, delta, now) {
+  function handleInput(keys, delta) {
     if (!state.alive) return;
+    const safeDelta = Math.min(50, Math.max(1, delta || 16));
     const dt = delta / 1000;
     const p = state.player;
 
@@ -402,7 +382,7 @@ export function createEngine(onGameOver) {
       p.aimAngle = moveDir.angle;
 
       const len = Math.hypot(moveDir.dx, moveDir.dy);
-      const step = PLAYER.speed * (delta / 1000);
+      const step = PLAYER.speed * dt;
 
       const moved = tryMoveCircle(
           p.x, p.y, p.size / 2,
@@ -431,6 +411,7 @@ export function createEngine(onGameOver) {
       }
     }
 
+
     const wantsToShoot = keys.has(" ");
     if (wantsToShoot && state.elapsed - p.lastShotAt >= PLAYER.fireCooldown) {
       fire();
@@ -441,6 +422,7 @@ export function createEngine(onGameOver) {
     const p = state.player;
     p.lastShotAt = state.elapsed;
     p.muzzleFlash = 40;
+    playShoot();
 
     const muzzle = p.size / 2 + BULLET.size / 2;
     const dirX = p.facingX;
@@ -531,7 +513,7 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Update ----------
-  function update(delta, now) {
+  function update(delta) {
     if (!state.alive) return;
 
     const dt = delta / 1000;
@@ -590,6 +572,12 @@ export function createEngine(onGameOver) {
 
 // Enemies
     const p = state.player;
+
+    // Heartbeat logic moved here from draw()
+    if (p.health <= 25 && p.health > 0) {
+      playHeartbeat(state.elapsed);
+    }
+
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
 
@@ -635,12 +623,14 @@ export function createEngine(onGameOver) {
         p.health = Math.max(0, p.health - e.damage);
         p.invulnUntil = state.elapsed + PLAYER.invulnMs;
         state.screenShake = 14;
+        playHurt();
         explode(p.x, p.y, "#f85149", 12);
         state.enemies.splice(i, 1);
 
         if (p.health <= 0) {
           state.alive = false;
           state.screenShake = 0;
+          playGameOver();
           explode(p.x, p.y, "#4ec9b0", 40);
 
           if (!state.gameOverFired) {
@@ -651,8 +641,6 @@ export function createEngine(onGameOver) {
             });
           }
           return;
-        } else {
-
         }
         continue;
       }
@@ -689,6 +677,7 @@ export function createEngine(onGameOver) {
           }
 
           if (e.hp <= 0) {
+            playKill(e.type);
             state.score += e.points;
             state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
             explode(e.x, e.y, e.color, 8); // Reduced particles
@@ -700,9 +689,9 @@ export function createEngine(onGameOver) {
             }
             state.enemies.splice(ei, 1);
           } else {
-
+            playHit();
           }
-          break; // Bullet is consumed, stop checking other enemies
+          break;
         }
       }
       if (consumed) state.bullets.splice(bi, 1);
@@ -892,7 +881,7 @@ export function createEngine(onGameOver) {
     }
     ctx.globalAlpha = 1;
 
-    
+
     // Enemies
     for (let i = 0; i < state.enemies.length; i++) {
       const e = state.enemies[i];
