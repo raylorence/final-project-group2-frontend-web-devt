@@ -1,9 +1,14 @@
-
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import "./LandingPage.css";
 
 export default function LandingPage() {
     const navigate = useNavigate();
+
+    const { user, loading } = useAuth();
+
+// Inside JSX:
+
 
     return (
         <main className="hk-landing">
@@ -34,19 +39,37 @@ export default function LandingPage() {
                     </p>
 
                     <div className="hk-actions">
-                        <button
-                            className="hk-primary-btn"
-                            onClick={() => navigate("/register")}
-                        >
-                            CREATE ACCOUNT
-                        </button>
-
-                        <button
-                            className="hk-secondary-btn"
-                            onClick={() => navigate("/login")}
-                        >
-                            LOGIN
-                        </button>
+                        {!loading && user ? (
+                            <>
+                                <button
+                                    className="hk-primary-btn"
+                                    onClick={() => navigate(user.role === "admin" ? "/admin" : "/menu")}
+                                >
+                                    RESUME MISSION ({user.username})
+                                </button>
+                                <button
+                                    className="hk-secondary-btn"
+                                    onClick={() => navigate("/leaderboard")}
+                                >
+                                    VIEW INTEL / LEADERBOARD
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    className="hk-primary-btn"
+                                    onClick={() => navigate("/register")}
+                                >
+                                    CREATE ACCOUNT
+                                </button>
+                                <button
+                                    className="hk-secondary-btn"
+                                    onClick={() => navigate("/login")}
+                                >
+                                    LOGIN
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     <p className="hk-warning">
