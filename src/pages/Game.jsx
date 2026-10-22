@@ -18,16 +18,19 @@ export default function Game() {
     const [pendingNav, setPendingNav] = useState(null);
     const [isMuted, setIsMuted] = useState(getMuteState());
 
-    const handleGameOver = useCallback(
+    const submitScoreData = useCallback(
         async (matchResult) => {
-            setResult(matchResult);
-            setPaused(false);
-            if (!token) return;
+            const dataToSubmit = matchResult || result;
+            if (!token || !dataToSubmit) return;
 
             setSubmitting(true);
             setError("");
             try {
-                const response = await submitScore(matchResult.score, matchResult.survivalTime, token);
+                const response = await submitScore(
+                    dataToSubmit.score,
+                    dataToSubmit.survivalTime,
+                    token
+                );
                 if (response?.isPersonalBest) {
                     setIsBestRecord(true);
                 }
@@ -38,7 +41,16 @@ export default function Game() {
                 setSubmitting(false);
             }
         },
-        [token]
+        [token, result]
+    );
+
+    const handleGameOver = useCallback(
+        async (matchResult) => {
+            setResult(matchResult);
+            setPaused(false);
+            await submitScoreData(matchResult);
+        },
+        [submitScoreData]
     );
 
     const handleTogglePause = useCallback(() => {
@@ -62,10 +74,9 @@ export default function Game() {
 
     useEffect(() => {
         const handleBeforeUnload = (e) => {
-            // Only prompt if the match is actively in progress
             if (isRunning) {
                 e.preventDefault();
-                e.returnValue = ""; // Standard browser requirement to trigger reload confirmation
+                e.returnValue = "";
             }
         };
 
@@ -186,7 +197,19 @@ export default function Game() {
                             Survival Duration: <strong>{result.survivalTime}s</strong>
                         </p>
                         {submitting && <p className="muted" style={{ fontSize: 13 }}>Syncing with central registry...</p>}
-                        {error && <p className="error">{error}</p>}
+                        {error && (
+                            <div style={{ marginBottom: 12 }}>
+                                <p className="error" style={{ marginBottom: 6 }}>{error}</p>
+                                <button
+                                    className="secondary"
+                                    onClick={() => submitScoreData()}
+                                    disabled={submitting}
+                                    style={{ fontSize: 13, padding: "4px 12px" }}
+                                >
+                                    ↻ Retry Submit
+                                </button>
+                            </div>
+                        )}
                         <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                             <button onClick={restart}>Redeploy Capsule</button>
                             <button className="secondary" onClick={() => navigate("/menu")}>
