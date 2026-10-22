@@ -5,7 +5,7 @@ import "./LandingPage.css";
 export default function LandingPage() {
     const navigate = useNavigate();
 
-    const { user, loading } = useAuth();
+    const { user, loading, signOut } = useAuth();
 
     const handleSwitchAccount = () => {
         signOut();
