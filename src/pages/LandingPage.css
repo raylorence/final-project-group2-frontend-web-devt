@@ -21,6 +21,39 @@
     font-family: "Courier New", monospace;
 }
 
+.hk-switch-account {
+    margin: 14px 0 0;
+    color: var(--hk-muted);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.hk-switch-account strong {
+    color: var(--hk-cream);
+}
+
+.hk-switch-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 4px;
+    color: var(--hk-green);
+    font-family: inherit;
+    font-size: 11px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: inherit;
+}
+
+.hk-switch-link:hover {
+    background: none;
+    color: #e3e6ad;
+    transform: none;
+}
+
+
 .hk-landing *,
 .hk-landing *::before,
 .hk-landing *::after {

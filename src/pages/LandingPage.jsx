@@ -7,7 +7,10 @@ export default function LandingPage() {
 
     const { user, loading } = useAuth();
 
-// Inside JSX:
+    const handleSwitchAccount = () => {
+        signOut();
+        navigate("/login");
+    };
 
 
     return (
@@ -71,6 +74,20 @@ export default function LandingPage() {
                             </>
                         )}
                     </div>
+
+                    {/* Account switcher link for logged-in sessions */}
+                    {!loading && user && (
+                        <p className="hk-switch-account">
+                            Not <strong>{user.username}</strong>?{" "}
+                            <button
+                                type="button"
+                                className="hk-switch-link"
+                                onClick={handleSwitchAccount}
+                            >
+                                Switch account / Log in
+                            </button>
+                        </p>
+                    )}
 
                     <p className="hk-warning">
                         [ ALERT ] HOSTILE PATHOGENS DETECTED
