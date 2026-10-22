@@ -145,6 +145,7 @@ export function createEngine(onGameOver) {
       gameOverFired: false,
       lastHeartbeat: 0,
       nextHeartbeatDub: 0,
+      heartbeatPhase: 0,
       camera: { x: 0, y: 0 },
     };
 
@@ -748,11 +749,14 @@ export function createEngine(onGameOver) {
 
     // Heartbeat logic
     if (state.alive && p.health <= 25 && p.health > 0) {
+      state.heartbeatPhase += dt * 7.4;
       if (state.elapsed - state.lastHeartbeat > 850) {
         state.lastHeartbeat = state.elapsed;
         state.nextHeartbeatDub = state.elapsed + 180;
+        state.heartbeatPhase = Math.PI / 2; 
         playHeartbeatLub();
       }
+      
       if (state.nextHeartbeatDub > 0 && state.elapsed >= state.nextHeartbeatDub) {
         state.nextHeartbeatDub = 0;
         playHeartbeatDub();
@@ -760,6 +764,7 @@ export function createEngine(onGameOver) {
     } else {
       state.lastHeartbeat = 0;
       state.nextHeartbeatDub = 0;
+      state.heartbeatPhase = 0;
     }
   }
 
@@ -1017,7 +1022,7 @@ export function createEngine(onGameOver) {
     ctx.restore();
 
     if (state.alive && p.health <= 25) {
-      const pulse = (Math.sin(state.elapsed * 0.008) + 1) * 0.5;
+      const pulse = (Math.sin(state.heartbeatPhase) + 1) * 0.5;
       const vigGrad = ctx.createRadialGradient(
         CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.25,
         CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.62
