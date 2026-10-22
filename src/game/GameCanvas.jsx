@@ -70,6 +70,7 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
       rafRef.current = requestAnimationFrame(loop);
     }
 
+    rafRef.current = requestAnimationFrame(loop);
 
     function onKeyDown(e) {
       // Unlock audio safely (without creating new contexts)
