@@ -211,32 +211,116 @@ export const MAPS = [
     ]
   },
   {
-    name: "Labyrinth",
+    name: "The Core",
     spawn: { x: 800, y: 520 },
     walls: [
-      // ===== OUTER RING (solid border) =====
+      // Outer perimeter borders (leaving 200px gates at midpoints)
+      { x: 0,    y: 40,  w: 700, h: 40 },
+      { x: 900,  y: 40,  w: 700, h: 40 },
+      { x: 0,    y: 960, w: 700, h: 40 },
+      { x: 900,  y: 960, w: 700, h: 40 },
+      { x: 0,    y: 40,  w: 40,  h: 420 },
+      { x: 0,    y: 580, w: 40,  h: 420 },
+      { x: 1560, y: 40,  w: 40,  h: 420 },
+      { x: 1560, y: 580, w: 40,  h: 420 },
+
+      // Central Pillar Complex (split cross with 200px middle courtyard)
+      { x: 620, y: 360, w: 120, h: 120 }, // Top-Left Center
+      { x: 860, y: 360, w: 120, h: 120 }, // Top-Right Center
+      { x: 620, y: 560, w: 120, h: 120 }, // Bottom-Left Center
+      { x: 860, y: 560, w: 120, h: 120 }, // Bottom-Right Center
+
+      // Outer Flanking Diamonds / Bunkers (isolated blocks)
+      { x: 260,  y: 240, w: 140, h: 140 },
+      { x: 1200, y: 240, w: 140, h: 140 },
+      { x: 260,  y: 660, w: 140, h: 140 },
+      { x: 1200, y: 660, w: 140, h: 140 },
+    ],
+  },
+  {
+    name: "Artery Lanes",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // Outer Borders
+      { x: 0,    y: 40,  w: 1600, h: 40 },
+      { x: 0,    y: 960, w: 1600, h: 40 },
+      { x: 0,    y: 40,  w: 40,   h: 960 },
+      { x: 1560, y: 40,  w: 40,   h: 960 },
+
+      // Left Vertical Channel (Divided with wide passages top/bottom/mid)
+      { x: 450, y: 160, w: 60, h: 220 },
+      { x: 450, y: 460, w: 60, h: 160 },
+      { x: 450, y: 700, w: 60, h: 200 },
+
+      // Right Vertical Channel
+      { x: 1090, y: 160, w: 60, h: 220 },
+      { x: 1090, y: 460, w: 60, h: 160 },
+      { x: 1090, y: 700, w: 60, h: 200 },
+
+      // Center Stage Islands (Provides cover for diagonal kiting)
+      { x: 740, y: 240, w: 120, h: 80 },
+      { x: 740, y: 720, w: 120, h: 80 },
+    ],
+  },
+  {
+    name: "Cellular Quads",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // Outer Border
+      { x: 0,    y: 40,  w: 1600, h: 40 },
+      { x: 0,    y: 960, w: 1600, h: 40 },
+      { x: 0,    y: 40,  w: 40,   h: 960 },
+      { x: 1560, y: 40,  w: 40,   h: 960 },
+
+      // Quadrant 1 (Top-Left Buffer)
+      { x: 280, y: 220, w: 220, h: 50 },
+      { x: 280, y: 270, w: 50,  h: 160 },
+
+      // Quadrant 2 (Top-Right Buffer)
+      { x: 1100, y: 220, w: 220, h: 50 },
+      { x: 1270, y: 270, w: 50,  h: 160 },
+
+      // Quadrant 3 (Bottom-Left Buffer)
+      { x: 280, y: 750, w: 220, h: 50 },
+      { x: 280, y: 590, w: 50,  h: 160 },
+
+      // Quadrant 4 (Bottom-Right Buffer)
+      { x: 1100, y: 750, w: 220, h: 50 },
+      { x: 1270, y: 590, w: 50,  h: 160 },
+
+      // Midfield Deflector Nodes
+      { x: 760, y: 300, w: 80, h: 80 },
+      { x: 760, y: 640, w: 80, h: 80 },
+    ],
+  },
+  {
+    name: "Bunker",
+    spawn: { x: 420, y: 520 },
+    walls: [
+      // ===== OUTER PERIMETER BORDER =====
       { x: 0,    y: 40,  w: 1600, h: 50 },  // top
       { x: 0,    y: 950, w: 1600, h: 50 },  // bottom
       { x: 0,    y: 40,  w: 50,   h: 960 }, // left
       { x: 1550, y: 40,  w: 50,   h: 960 }, // right
 
-      // ===== MIDDLE RING (gaps: top-left & bottom-right) =====
-      { x: 400,  y: 180, w: 1000, h: 50 },  // top (gap at x 200-400)
-      { x: 200,  y: 330, w: 50,   h: 530 }, // left (gap at y 180-330)
-      { x: 1350, y: 180, w: 50,   h: 530 }, // right (gap at y 710-860)
-      { x: 200,  y: 810, w: 1000, h: 50 },  // bottom (gap at x 1200-1400)
+      // ===== LEFT SECURITY DIVIDER (Split with a 200px central breach) =====
+      { x: 200,  y: 160, w: 50,   h: 240 }, // top segment
+      { x: 200,  y: 640, w: 50,   h: 240 }, // bottom segment
 
-      // ===== INNER RING (gaps: top-right & bottom-left) =====
-      { x: 400,  y: 320, w: 600,  h: 50 },  // top (gap at x 1000-1200)
-      { x: 1150, y: 420, w: 50,   h: 300 }, // right (gap at y 320-420)
-      { x: 600,  y: 670, w: 600,  h: 50 },  // bottom (gap at x 400-600)
-      { x: 400,  y: 320, w: 50,   h: 250 }, // left (gap at y 570-720)
+      // ===== CENTRAL VAULT PILLARS (Chamber split into 2 standalone blocks) =====
+      // Gaps between and around pillars allow fluid 8-directional flanking
+      { x: 580,  y: 380, w: 140,  h: 280 }, // west vault column
+      { x: 800,  y: 380, w: 140,  h: 280 }, // east vault column
 
-      // ===== CENTER BOX (gap: top-left) =====
-      { x: 800,  y: 460, w: 80,   h: 20 },  // top
-      { x: 720,  y: 500, w: 20,   h: 80 },  // left
-      { x: 860,  y: 460, w: 20,   h: 120 }, // right
-      { x: 720,  y: 560, w: 160,  h: 20 },  // bottom
+      // ===== EAST DIVISION WING (Segmented with a 200px transit portal) =====
+      // Replaces the continuous 650px dead-end with two navigable blast doors
+      { x: 1040, y: 500, w: 220,  h: 50 },  // inner gate wall
+      { x: 1360, y: 500, w: 190,  h: 50 },  // outer perimeter latch (gap at 1260-1360)
+
+      // ===== PERIPHERAL COVER NODES =====
+      // Provides obstacle variety for bullet/enemy clearance in open zones
+      { x: 1100, y: 220, w: 100,  h: 80 },  // northeast bunker bunker
+      { x: 1100, y: 720, w: 100,  h: 80 },  // southeast bunker bunker
     ],
   }
 ];
