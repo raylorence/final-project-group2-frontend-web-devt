@@ -6,6 +6,15 @@ export function initAudio() {
   if (audioCtx) return;
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   audioCtx = new AudioContext();
+
+  // WARM-UP HACK: Play a 1-millisecond silent sound to wake up the hardware
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0; // Completely silent
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(0);
+  osc.stop(audioCtx.currentTime + 0.001); // Stop after 1ms
 }
 
 // Unlock audio on first user interaction (browser requirement)
@@ -89,14 +98,70 @@ export function playHit() {
 
 export function playKill(type) {
   if (type === "fast") {
-    playOsc("sine", 800, 400, 0.1, 0.2); 
+    playOsc("sine", 800, 400, 0.1, 0.2);
   } else if (type === "tank") {
-    playOsc("sawtooth", 200, 40, 0.2, 0.3); 
+    playOsc("sawtooth", 200, 40, 0.2, 0.3);
     playNoise(0.15, 0.2, 400);
   } else if (type === "splitter") {
     playOsc("sine", 600, 300, 0.08, 0.15);
-    setTimeout(() => playOsc("sine", 700, 350, 0.08, 0.15), 60); 
+    setTimeout(() => playOsc("sine", 700, 350, 0.08, 0.15), 60);
+  } else if (type === "worm") {
+    playOsc("triangle", 450, 80, 0.14, 0.25);
+    playNoise(0.12, 0.18, 1400);
   }
+}
+
+let lastWormSquelch = -1000;
+let lastTankThudTime = -1000;
+
+// Reset cooldowns on game restart/match redeploy
+export function resetSoundCooldowns() {
+  lastWormSquelch = -1000;
+  lastTankThudTime = -1000;
+}
+
+export function playWormSquirm(elapsedMs = 0, distanceRatio = 1) {
+  if (!audioCtx || isMuted) return;
+  // Trigger at most once every 320ms
+  if (elapsedMs - lastWormSquelch < 320) return;
+  lastWormSquelch = elapsedMs;
+
+  const vol = Math.max(0.02, (1 - distanceRatio) * 0.12);
+
+  // Soft low-frequency squelch
+  playOsc("sine", 180 + Math.random() * 40, 90, 0.09, vol);
+  // Viscous fluid hiss
+  playNoise(0.08, vol * 0.8, 950 + Math.random() * 200);
+}
+
+export function playTankThud(elapsedMs = 0, distanceRatio = 1) {
+  if (!audioCtx || isMuted) return;
+
+  // Rate-limit to at most once every 350ms
+  if (elapsedMs - lastTankThudTime < 350) return;
+  lastTankThudTime = elapsedMs;
+
+  const vol = Math.max(0.08, (1 - distanceRatio) * 0.28);
+
+  // Punchy audible thud (triangle fundamental + sub-sine + transient knock)
+  playOsc("triangle", 125, 45, 0.16, vol);
+  playOsc("sine", 70, 30, 0.20, vol * 0.9);
+  playNoise(0.03, vol * 0.5, 420);
+}
+
+export function playCellDivide() {
+  if (!audioCtx || isMuted) return;
+  // A double quick frequency pop representing mitotic division
+  playOsc("sawtooth", 520, 210, 0.08, 0.16);
+  setTimeout(() => playOsc("triangle", 640, 180, 0.09, 0.18), 45);
+}
+
+
+export function playWallImpact() {
+  if (!audioCtx || isMuted) return;
+  // Dull fleshy thud on vascular wall
+  playOsc("triangle", 110, 40, 0.05, 0.08);
+  playNoise(0.03, 0.05, 300);
 }
 
 export function playHurt() {
@@ -126,19 +191,12 @@ export function playGameOver() {
   osc.stop(audioCtx.currentTime + 1.5);
 }
 
-let lastHeartbeat = 0;
-export function playHeartbeat(elapsed) {
+export function playHeartbeatLub() {
   if (!audioCtx || isMuted) return;
-  
-  // Repeat every 800ms
-  if (elapsed - lastHeartbeat < 800) return;
-  lastHeartbeat = elapsed;
-
-  // "Lub" (High thump)
   playOsc("triangle", 140, 140, 0.12, 0.6);
-  
-  // "Dub" (Lower thump, slightly delayed)
-  setTimeout(() => {
-    playOsc("triangle", 110, 110, 0.15, 0.5);
-  }, 180); 
+}
+
+export function playHeartbeatDub() {
+  if (!audioCtx || isMuted) return;
+  playOsc("sine", 100, 100, 0.15, 0.5);
 }

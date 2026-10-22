@@ -75,7 +75,7 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
     function onKeyDown(e) {
       // Unlock audio safely (without creating new contexts)
       unlockAudio();
-      
+
       const k = e.key.toLowerCase();
 
       // Prevent accidental reload keys during gameplay

@@ -1,6 +1,7 @@
 import {
   initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
-  playHeartbeat
+  playHeartbeatLub, playHeartbeatDub, playCellDivide, playWallImpact, playTankThud, playWormSquirm,
+  resetSoundCooldowns,
 } from "./sound.js";
 
 import {
@@ -20,27 +21,20 @@ const createSprite = (drawFn, size) => {
 
 const ENEMY_SPRITES = {};
 const BULLET_SPRITE = createSprite((ctx, size) => {
-  // Center the drawing point
   ctx.translate(size / 2, size / 2);
-
-  // Draw the original glowing circle
   ctx.shadowColor = "#4ec9b0";
   ctx.shadowBlur = 10;
   ctx.fillStyle = "#a5f3e0";
   ctx.beginPath();
-  ctx.arc(0, 0, size / 2 - 10, 0, Math.PI * 2); // 10px padding for the shadow
+  ctx.arc(0, 0, size / 2 - 10, 0, Math.PI * 2);
   ctx.fill();
 }, 30);
-
-// Pre-render all enemy types
 
 Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
   ENEMY_SPRITES[type] = createSprite((ctx, size) => {
     ctx.translate(size / 2, size / 2);
 
-    // Bacterial worm: rod-shaped cell with wavy flagella
     if (type === "worm") {
-      // Wavy flagella around the body
       ctx.strokeStyle = "#56B8FF";
       ctx.lineWidth = 1.5;
 
@@ -62,14 +56,13 @@ Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
         ctx.stroke();
       }
 
-      // Rounded rod-shaped bacterial body
       ctx.beginPath();
       ctx.roundRect(
-        -size * 0.32,
-        -size * 0.17,
-        size * 0.64,
-        size * 0.34,
-        size * 0.17
+          -size * 0.32,
+          -size * 0.17,
+          size * 0.64,
+          size * 0.34,
+          size * 0.17
       );
       ctx.fillStyle = "#168BFF";
       ctx.fill();
@@ -78,15 +71,14 @@ Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Inner cell texture
       for (let i = 0; i < 5; i++) {
         ctx.beginPath();
         ctx.arc(
-          -size * 0.2 + i * size * 0.1,
-          Math.sin(i * 1.5) * size * 0.06,
-          size * 0.025,
-          0,
-          Math.PI * 2
+            -size * 0.2 + i * size * 0.1,
+            Math.sin(i * 1.5) * size * 0.06,
+            size * 0.025,
+            0,
+            Math.PI * 2
         );
         ctx.fillStyle = "#0754A6";
         ctx.fill();
@@ -95,7 +87,6 @@ Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
       return;
     }
 
-    // Keep the existing spiky design for other enemies
     const spikes = 10;
     const outer = size / 2 - 2;
     const inner = outer * 0.65;
@@ -122,7 +113,6 @@ Object.entries(ENEMY_TYPES).forEach(([type, t]) => {
   }, t.size + 4);
 });
 
-
 export function createEngine(onGameOver) {
   let state = null;
 
@@ -132,10 +122,10 @@ export function createEngine(onGameOver) {
 
   function reset() {
     initAudio();
+    resetSoundCooldowns();
 
     const map = pickMap();
 
-    // Generate 35 slow-drifting plasma motes / red blood cells
     const bgMotes = [];
     for (let i = 0; i < 35; i++) {
       bgMotes.push({
@@ -176,7 +166,12 @@ export function createEngine(onGameOver) {
       alive: true,
       screenShake: 0,
       gameOverFired: false,
+      lastHeartbeat: 0,
+      nextHeartbeatDub: 0,
+      heartbeatPhase: 0,
       camera: { x: 0, y: 0 },
+      breadcrumbs: [{ x: map.spawn.x, y: map.spawn.y, time: 0 }],
+      lastBreadcrumbPos: { x: map.spawn.x, y: map.spawn.y },
     };
 
     updateCamera();
@@ -220,26 +215,37 @@ export function createEngine(onGameOver) {
     return false;
   }
 
+  // Robust circle movement with sliding support
   function tryMoveCircle(x, y, r, mx, my) {
-    let nx = x + mx;
-    if (circleHitsAnyWall(nx, y, r)) nx = x;
-    let ny = y + my;
-    if (circleHitsAnyWall(nx, ny, r)) ny = y;
-    return { x: nx, y: ny };
+    // Full diagonal move
+    if (!circleHitsAnyWall(x + mx, y + my, r)) {
+      return { x: x + mx, y: y + my };
+    }
+
+    // Test sliding along individual axes
+    const canSlideX = !circleHitsAnyWall(x + mx, y, r);
+    const canSlideY = !circleHitsAnyWall(x, y + my, r);
+
+    // If both are individually clear, prioritize whichever axis has greater displacement
+    if (canSlideX && canSlideY) {
+      return Math.abs(mx) >= Math.abs(my) ? { x: x + mx, y } : { x, y: y + my };
+    }
+    if (canSlideX) return { x: x + mx, y };
+    if (canSlideY) return { x, y: y + my };
+
+    return { x, y };
   }
 
   // ---------- Spawning ----------
   function pickEnemyType() {
-  const r = Math.random() * 12;
-
-  if (r < 5) return "fast";
-  if (r < 8) return "tank";
-  if (r < 10) return "splitter";
-  return "worm";
-}
+    const r = Math.random() * 12;
+    if (r < 5) return "fast";
+    if (r < 8) return "tank";
+    if (r < 10) return "splitter";
+    return "worm";
+  }
 
   function spawnEnemy(typeName, x, y, sizeOverride, hpOverride) {
-
     const t = ENEMY_TYPES[typeName] || {
       size: 20,
       speed: 45,
@@ -262,27 +268,23 @@ export function createEngine(onGameOver) {
       let valid = false;
       let attempts = 0;
 
-      // Ensure enemies spawn off-camera and out of walls
       while (!valid && attempts < 20) {
         const edge = Math.floor(Math.random() * 4);
-        if (edge === 0) { // Top
+        if (edge === 0) {
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewTop - buffer;
-        } else if (edge === 1) { // Right
+        } else if (edge === 1) {
           sx = viewRight + buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
-        } else if (edge === 2) { // Bottom
+        } else if (edge === 2) {
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewBottom + buffer;
-        } else { // Left
+        } else {
           sx = viewLeft - buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
         }
 
-        // Prevent spawning in the top HUD area where they get paralyzed
         sy = Math.max(HUD_HEIGHT + size / 2 + 10, sy);
-
-        // Verify it's not inside the camera view and not stuck in a wall
         const inViewX = sx > viewLeft - size && sx < viewRight + size;
         const inViewY = sy > viewTop - size && sy < viewBottom + size;
 
@@ -292,23 +294,18 @@ export function createEngine(onGameOver) {
         attempts++;
       }
 
-      // Failsafe if we couldn't find an offscreen point after 20 tries
       if (!valid) {
         sx = viewRight + buffer;
         sy = Math.max(HUD_HEIGHT + size / 2 + 10, viewBottom + buffer);
       }
     }
 
-    // Push out of walls (like splitters dying on walls)
     if (x !== undefined && circleHitsAnyWall(sx, sy, size / 2)) {
       const pushAngle = Math.atan2(WORLD_H / 2 - sy, WORLD_W / 2 - sx);
       let attempts = 0;
-
       while (circleHitsAnyWall(sx, sy, size / 2) && attempts < 30) {
         sx += Math.cos(pushAngle) * 8;
         sy += Math.sin(pushAngle) * 8;
-
-        // FIX: Ensure the push-out logic doesn't shove them into the HUD
         sx = Math.max(size, Math.min(WORLD_W - size, sx));
         sy = Math.max(HUD_HEIGHT + size + 10, Math.min(WORLD_H - size, sy));
         attempts++;
@@ -332,7 +329,6 @@ export function createEngine(onGameOver) {
   }
 
   function explode(x, y, color, count = 8) {
-    // Cap particles to prevent lag
     if (state.particles.length > 200) return;
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -362,10 +358,8 @@ export function createEngine(onGameOver) {
     return null;
   }
 
-  // ---------- Input ----------
   function handleInput(keys, delta) {
     if (!state.alive) return;
-    const safeDelta = Math.min(50, Math.max(1, delta || 16));
     const dt = delta / 1000;
     const p = state.player;
 
@@ -393,7 +387,6 @@ export function createEngine(onGameOver) {
       p.x = Math.max(p.size / 2, Math.min(WORLD_W - p.size / 2, moved.x));
       p.y = Math.max(HUD_HEIGHT + p.size / 2, Math.min(WORLD_H - p.size / 2, moved.y));
 
-      // Bubble trail must be INSIDE if (moveDir) so moveDir and len exist
       state.trailTimer = (state.trailTimer || 0) + delta;
       if (state.trailTimer >= 60) {
         state.trailTimer = 0;
@@ -410,7 +403,6 @@ export function createEngine(onGameOver) {
         });
       }
     }
-
 
     const wantsToShoot = keys.has(" ");
     if (wantsToShoot && state.elapsed - p.lastShotAt >= PLAYER.fireCooldown) {
@@ -429,7 +421,6 @@ export function createEngine(onGameOver) {
     const dirY = p.facingY;
     const len = Math.hypot(dirX, dirY) || 1;
 
-    // Define tipX and tipY so the particle loop can access them
     const tipX = p.x + (dirX / len) * muzzle;
     const tipY = p.y + (dirY / len) * muzzle;
 
@@ -443,7 +434,6 @@ export function createEngine(onGameOver) {
       age: 0,
     });
 
-    // 3-4 short-lived cyan/white spark particles at nozzle tip
     for (let k = 0; k < 4; k++) {
       const spread = (Math.random() - 0.5) * 1.2;
       const spd = 40 + Math.random() * 80;
@@ -460,19 +450,51 @@ export function createEngine(onGameOver) {
     }
   }
 
-  // ---------- AI (Optimized) ----------
+  // ---------- SENSOR / STEERING AI ----------
   const ENEMY_DIRS = [
     DIRECTIONS.N, DIRECTIONS.NE, DIRECTIONS.E, DIRECTIONS.SE,
     DIRECTIONS.S, DIRECTIONS.SW, DIRECTIONS.W, DIRECTIONS.NW,
   ];
 
+  function hasLineOfSight(x1, y1, x2, y2, radius) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 15) return true;
+    const steps = Math.ceil(dist / 18);
+    for (let i = 1; i < steps; i++) {
+      const cx = x1 + (dx / steps) * i;
+      const cy = y1 + (dy / steps) * i;
+      if (circleHitsAnyWall(cx, cy, radius)) return false;
+    }
+    return true;
+  }
+
   function pickEnemyDirection(e, p) {
-    const rawAngle = Math.atan2(p.y - e.y, p.x - e.x);
+    const radius = e.size / 2;
+
+    // 1. Determine target: Player if visible, else the furthest visible player footprint
+    let targetX = p.x;
+    let targetY = p.y;
+
+    if (!hasLineOfSight(e.x, e.y, p.x, p.y, radius)) {
+      // Find the most recent breadcrumb that this enemy still has line-of-sight to
+      for (let i = state.breadcrumbs.length - 1; i >= 0; i--) {
+        const bc = state.breadcrumbs[i];
+        if (hasLineOfSight(e.x, e.y, bc.x, bc.y, radius)) {
+          targetX = bc.x;
+          targetY = bc.y;
+          break;
+        }
+      }
+    }
+
+    // 2. Run your preferred sensor steering towards targetX, targetY
+    const rawAngle = Math.atan2(targetY - e.y, targetX - e.x);
     let bestDir = e.currentDir || ENEMY_DIRS[0];
     let bestScore = Infinity;
 
-    // Look far enough ahead to detect wall collisions before getting wedged
-    const probeDist = e.size / 2 + 12;
+    const probeDist = radius + 14;
 
     for (let i = 0; i < ENEMY_DIRS.length; i++) {
       const d = ENEMY_DIRS[i];
@@ -480,18 +502,26 @@ export function createEngine(onGameOver) {
       const nx = e.x + (d.dx / len) * probeDist;
       const ny = e.y + (d.dy / len) * probeDist;
 
-      if (circleHitsAnyWall(nx, ny, e.size / 2)) continue;
+      if (circleHitsAnyWall(nx, ny, radius)) continue;
+
+      if (d.dx !== 0 && d.dy !== 0) {
+        if (
+            circleHitsAnyWall(e.x + (d.dx / len) * (probeDist * 0.7), e.y, radius) ||
+            circleHitsAnyWall(e.x, e.y + (d.dy / len) * (probeDist * 0.7), radius)
+        ) {
+          continue;
+        }
+      }
 
       let angleDiff = Math.abs(rawAngle - d.angle);
       if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
 
-      // Penalize 180-degree reversals so enemies commit to sliding along long walls
       let reversalPenalty = 0;
       if (e.currentDir) {
         let turnDiff = Math.abs(e.currentDir.angle - d.angle);
         if (turnDiff > Math.PI) turnDiff = Math.PI * 2 - turnDiff;
         if (turnDiff > Math.PI * 0.75) {
-          reversalPenalty = 1.2; // Prevents oscillation on Long Halls / The Bunker
+          reversalPenalty = 1.35;
         }
       }
 
@@ -519,12 +549,10 @@ export function createEngine(onGameOver) {
     const dt = delta / 1000;
     state.elapsed += delta;
 
-    // Decay player muzzle flash
     if (state.player.muzzleFlash > 0) {
       state.player.muzzleFlash = Math.max(0, state.player.muzzleFlash - delta);
     }
 
-    // Drift background blood motes across world
     for (let m = 0; m < state.bgMotes.length; m++) {
       const mote = state.bgMotes[m];
       mote.x += mote.vx * dt;
@@ -534,8 +562,6 @@ export function createEngine(onGameOver) {
       if (mote.y < HUD_HEIGHT) mote.y = WORLD_H + 20;
       if (mote.y > WORLD_H + 20) mote.y = HUD_HEIGHT;
     }
-
-
 
     updateCamera();
 
@@ -552,6 +578,7 @@ export function createEngine(onGameOver) {
           b.y < HUD_HEIGHT || b.y > WORLD_H + 20;
 
       if (outOfBounds || circleHitsAnyWall(b.x, b.y, b.size / 2)) {
+        playWallImpact();
         state.bullets.splice(i, 1);
       }
     }
@@ -570,43 +597,90 @@ export function createEngine(onGameOver) {
       }
     }
 
-// Enemies
     const p = state.player;
 
-    // Heartbeat logic moved here from draw()
-    if (p.health <= 25 && p.health > 0) {
-      playHeartbeat(state.elapsed);
+    // Two-tone Heartbeat
+    if (state.alive && p.health <= 25 && p.health > 0) {
+      state.heartbeatPhase += dt * 7.4;
+      if (state.elapsed - state.lastHeartbeat > 850) {
+        state.lastHeartbeat = state.elapsed;
+        state.nextHeartbeatDub = state.elapsed + 180;
+        state.heartbeatPhase = Math.PI / 2;
+        playHeartbeatLub();
+      }
+      if (state.nextHeartbeatDub > 0 && state.elapsed >= state.nextHeartbeatDub) {
+        state.nextHeartbeatDub = 0;
+        playHeartbeatDub();
+      }
+    } else {
+      state.lastHeartbeat = 0;
+      state.nextHeartbeatDub = 0;
+      state.heartbeatPhase = 0;
     }
 
+    let closestWormDist = Infinity;
+    for (let i = 0; i < state.enemies.length; i++) {
+      const e = state.enemies[i];
+      if (e.type === "worm") {
+        const d = Math.hypot(e.x - p.x, e.y - p.y);
+        if (d < closestWormDist) closestWormDist = d;
+      }
+    }
+
+    if (closestWormDist < 450) {
+      playWormSquirm(state.elapsed, closestWormDist / 450);
+    }
+
+    // Record breadcrumb every 70px of travel or major turn
+    const distFromLastBreadcrumb = Math.hypot(
+        p.x - state.lastBreadcrumbPos.x,
+        p.y - state.lastBreadcrumbPos.y
+    );
+
+    if (distFromLastBreadcrumb >= 70) {
+      state.breadcrumbs.push({ x: p.x, y: p.y, time: state.elapsed });
+      state.lastBreadcrumbPos = { x: p.x, y: p.y };
+
+      // Keep only the last 20 breadcrumbs
+      if (state.breadcrumbs.length > 20) {
+        state.breadcrumbs.shift();
+      }
+    }
+
+    // Enemies
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
 
-      // Draw hit flash overlay
       if (e.hitFlash > 0) {
         e.hitFlash = Math.max(0, e.hitFlash - delta);
       }
 
-
-      // Failsafe for enemies stuck in the top HUD zone
       if (e.y - e.size / 2 < HUD_HEIGHT) {
         e.y = HUD_HEIGHT + e.size / 2 + 2;
       }
 
-      // AI Reaction Time Logic
+      // Ejection failsafe for stuck enemies
+      if (circleHitsAnyWall(e.x, e.y, e.size / 2)) {
+        const pushAngle = Math.atan2(WORLD_H / 2 - e.y, WORLD_W / 2 - e.x);
+        let attempts = 0;
+        while (circleHitsAnyWall(e.x, e.y, e.size / 2) && attempts < 15) {
+          e.x += Math.cos(pushAngle) * 4;
+          e.y += Math.sin(pushAngle) * 4;
+          attempts++;
+        }
+      }
+
       e.aiCooldown -= dt;
       if (e.aiCooldown <= 0 || !e.currentDir) {
         e.currentDir = pickEnemyDirection(e, p);
-
-        // Set the reaction delay based on enemy type.
-        // Fast enemies react in 0.15s, tanks take 0.5s to turn.
-        if (e.type === "fast") e.aiCooldown = 0.15;
-        else if (e.type === "tank") e.aiCooldown = 0.50;
-        else e.aiCooldown = 0.30;
+        if (e.type === "fast") e.aiCooldown = 0.12;
+        else if (e.type === "tank") e.aiCooldown = 0.35;
+        else e.aiCooldown = 0.22;
       }
 
-      const dir = e.currentDir; // Use the stored direction instead of recalculating
+      const dir = e.currentDir;
       const step = e.speed * dt;
-      const len = (dir.dx !== 0 && dir.dy !== 0) ? 1.414 : 1;
+      const len = (dir.dx !== 0 && dir.dy !== 0) ? Math.SQRT2 : 1;
 
       const moved = tryMoveCircle(
           e.x, e.y, e.size / 2,
@@ -617,7 +691,23 @@ export function createEngine(onGameOver) {
       e.x = moved.x;
       e.y = moved.y;
       e.wobble += dt * 6;
-      // Use squared distance for collision check (fast)
+
+// --- TANK FOOTSTEP THUD ---
+      if (e.type === "tank") {
+        // Step every full rotation of wobble (~1.05 seconds per cycle at 6 rad/s)
+        const prevWobble = e.wobble - dt * 6;
+        const crossedCycle = Math.floor(e.wobble / Math.PI) > Math.floor(prevWobble / Math.PI);
+
+        if (crossedCycle) {
+          const distToPlayer = Math.hypot(e.x - p.x, e.y - p.y);
+          const maxAudibleDist = 550;
+
+          if (distToPlayer < maxAudibleDist) {
+            playTankThud(state.elapsed, distToPlayer / maxAudibleDist);
+          }
+        }
+      }
+
       const hitRadius = (e.size / 2 + p.size / 2);
       if (state.elapsed > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
         p.health = Math.max(0, p.health - e.damage);
@@ -658,15 +748,13 @@ export function createEngine(onGameOver) {
 
         if (distSq(b.x, b.y, e.x, e.y) < totalRadius * totalRadius) {
           e.hp -= b.damage;
-          explode(b.x, b.y, e.color, 2); // Reduced particles
+          explode(b.x, b.y, e.color, 2);
           consumed = true;
 
-          // Hit-flash triggers for tank, splitter, AND worm
           if (e.type === "tank" || e.type === "splitter" || e.type === "worm") {
             e.hitFlash = 60;
           }
 
-          // Knockback ONLY affects tank and splitter (worm is immune to knockback)
           if (e.type === "tank" || e.type === "splitter") {
             const bLen = Math.hypot(b.vx, b.vy) || 1;
             const kx = (b.vx / bLen) * 3;
@@ -680,12 +768,12 @@ export function createEngine(onGameOver) {
             playKill(e.type);
             state.score += e.points;
             state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
-            explode(e.x, e.y, e.color, 8); // Reduced particles
-
+            explode(e.x, e.y, e.color, 8);
 
             if (e.type === "splitter" && e.size > 14) {
               spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
               spawnEnemy("splitter", e.x + 10, e.y, e.size * 0.6, 1);
+              playCellDivide();
             }
             state.enemies.splice(ei, 1);
           } else {
@@ -713,7 +801,7 @@ export function createEngine(onGameOver) {
     }
   }
 
-  // ---------- Draw (Optimized) ----------
+  // ---------- Draw ----------
   function draw(ctx, isPaused) {
     ctx.fillStyle = "#070b10";
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -727,11 +815,7 @@ export function createEngine(onGameOver) {
 
     ctx.translate(-Math.round(state.camera.x), -Math.round(state.camera.y));
 
-    
-    // Dark Bloodstream Floor
-    const bloodFloor = ctx.createLinearGradient(
-      0, 0, WORLD_W, WORLD_H
-    );
+    const bloodFloor = ctx.createLinearGradient(0, 0, WORLD_W, WORLD_H);
     bloodFloor.addColorStop(0, "#26080d");
     bloodFloor.addColorStop(0.5, "#180609");
     bloodFloor.addColorStop(1, "#30090f");
@@ -739,7 +823,6 @@ export function createEngine(onGameOver) {
     ctx.fillStyle = bloodFloor;
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
 
-    // Drifting blood cells / plasma motes ---
     for (let m = 0; m < state.bgMotes.length; m++) {
       const mote = state.bgMotes[m];
       ctx.fillStyle = mote.color;
@@ -750,7 +833,6 @@ export function createEngine(onGameOver) {
     }
     ctx.globalAlpha = 1;
 
-    // Subtle organic tissue texture
     for (let i = 0; i < 100; i++) {
       const x = (i * 347 + 83) % WORLD_W;
       const y = (i * 193 + 47) % WORLD_H;
@@ -758,16 +840,15 @@ export function createEngine(onGameOver) {
 
       ctx.beginPath();
       ctx.ellipse(
-        x, y, radius * 1.7, radius,
-        (i % 5) * 0.3, 0, Math.PI * 2
+          x, y, radius * 1.7, radius,
+          (i % 5) * 0.3, 0, Math.PI * 2
       );
       ctx.fillStyle = i % 2 === 0
-        ? "rgba(90, 8, 22, 0.16)"
-        : "rgba(130, 25, 40, 0.07)";
+          ? "rgba(90, 8, 22, 0.16)"
+          : "rgba(130, 25, 40, 0.07)";
       ctx.fill();
     }
 
-    // Blood vessels
     const vessels = [
       [0, 160, 180, 210, 340, 175, 510, 230, 720, 190, 900, 250],
       [120, 0, 160, 150, 220, 280, 190, 430, 260, 600],
@@ -788,14 +869,13 @@ export function createEngine(onGameOver) {
       }
 
       ctx.strokeStyle = index % 2 === 0
-        ? "rgba(130, 20, 38, 0.32)"
-        : "rgba(75, 10, 25, 0.45)";
+          ? "rgba(130, 20, 38, 0.32)"
+          : "rgba(75, 10, 25, 0.45)";
       ctx.lineWidth = index % 2 === 0 ? 24 : 16;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.stroke();
 
-      // Inner highlight of each vessel
       ctx.beginPath();
       ctx.moveTo(points[0], points[1]);
 
@@ -808,7 +888,6 @@ export function createEngine(onGameOver) {
       ctx.stroke();
     });
 
-    // Red blood cells
     for (let i = 0; i < 85; i++) {
       const x = (i * 193 + 71) % WORLD_W;
       const y = (i * 271 + 39) % WORLD_H;
@@ -832,7 +911,6 @@ export function createEngine(onGameOver) {
       ctx.restore();
     }
 
-    // Tiny suspended particles
     for (let i = 0; i < 120; i++) {
       const x = (i * 149 + 31) % WORLD_W;
       const y = (i * 227 + 17) % WORLD_H;
@@ -842,29 +920,23 @@ export function createEngine(onGameOver) {
       ctx.fillRect(x, y, size, size);
     }
 
-
-    // Organic Tissue Walls (Rounded Vascular Structures)
     for (let i = 0; i < state.walls.length; i++) {
       const w = state.walls[i];
 
-      // Soft drop shadow
       ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
       ctx.beginPath();
       ctx.roundRect(w.x + 4, w.y + 4, w.w, w.h, 12);
       ctx.fill();
 
-      // Deep vascular crimson/violet interior
       ctx.fillStyle = "#2a121e";
       ctx.beginPath();
       ctx.roundRect(w.x, w.y, w.w, w.h, 12);
       ctx.fill();
 
-      // Outer bioluminescent membrane border
       ctx.strokeStyle = "#f85149";
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Subtle inner bio-cyan rim
       ctx.strokeStyle = "rgba(78, 201, 176, 0.3)";
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -872,24 +944,20 @@ export function createEngine(onGameOver) {
       ctx.stroke();
     }
 
-    // Particles
     for (let i = 0; i < state.particles.length; i++) {
       const pt = state.particles[i];
       ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
       ctx.fillStyle = pt.color;
-      ctx.fillRect(pt.x, pt.y, pt.size, pt.size); // fillRect is faster than arc
+      ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
     }
     ctx.globalAlpha = 1;
 
-
-    // Enemies
     for (let i = 0; i < state.enemies.length; i++) {
       const e = state.enemies[i];
 
       ctx.save();
       ctx.translate(e.x, e.y);
 
-      // Render white hit-flash circle if active
       if (e.hitFlash > 0) {
         ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
         ctx.beginPath();
@@ -901,7 +969,6 @@ export function createEngine(onGameOver) {
         const phase = state.elapsed * 0.012 + e.wobble;
         const size = e.size;
 
-        // Animated flagella
         ctx.strokeStyle = "#56B8FF";
         ctx.lineWidth = 1.5;
 
@@ -916,8 +983,8 @@ export function createEngine(onGameOver) {
           for (let k = 1; k <= 8; k++) {
             const x = startX + side * k * size * 0.045;
             const y =
-              startY +
-              Math.sin(phase + k * 0.9 + j * 1.3) * size * 0.08;
+                startY +
+                Math.sin(phase + k * 0.9 + j * 1.3) * size * 0.08;
 
             ctx.lineTo(x, y);
           }
@@ -925,17 +992,16 @@ export function createEngine(onGameOver) {
           ctx.stroke();
         }
 
-        // Wiggling bacterial body
         ctx.rotate(Math.sin(phase) * 0.18);
         ctx.translate(0, Math.sin(phase * 1.5) * size * 0.06);
 
         ctx.beginPath();
         ctx.roundRect(
-          -size * 0.36,
-          -size * 0.18,
-          size * 0.72,
-          size * 0.36,
-          size * 0.18
+            -size * 0.36,
+            -size * 0.18,
+            size * 0.72,
+            size * 0.36,
+            size * 0.18
         );
         ctx.fillStyle = "#168BFF";
         ctx.fill();
@@ -944,72 +1010,46 @@ export function createEngine(onGameOver) {
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Details inside the cell
         for (let j = 0; j < 5; j++) {
           ctx.beginPath();
           ctx.arc(
-            -size * 0.22 + j * size * 0.11,
-            Math.sin(phase + j * 1.5) * size * 0.05,
-            size * 0.025,
-            0,
-            Math.PI * 2
+              -size * 0.22 + j * size * 0.11,
+              Math.sin(phase + j * 1.5) * size * 0.05,
+              size * 0.025,
+              0,
+              Math.PI * 2
           );
           ctx.fillStyle = "#0754A6";
           ctx.fill();
         }
       } else {
-        // Keep the original sprites for other enemies
         const sprite = ENEMY_SPRITES[e.type];
-
         ctx.rotate(e.wobble);
-
         const scale = (e.size + 4) / sprite.width;
         ctx.scale(scale, scale);
-
-        ctx.drawImage(
-          sprite,
-          -sprite.width / 2,
-          -sprite.height / 2
-        );
+        ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
       }
 
       ctx.restore();
 
-      // HP Bar
       if (e.maxHp > 1 && e.hp < e.maxHp) {
         ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(
-          e.x - e.size / 2,
-          e.y - e.size / 2 - 8,
-          e.size,
-          3
-        );
-
+        ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2 - 8, e.size, 3);
         ctx.fillStyle = "#3fb950";
-        ctx.fillRect(
-          e.x - e.size / 2,
-          e.y - e.size / 2 - 8,
-          e.size * (e.hp / e.maxHp),
-          3
-        );
+        ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2 - 8, e.size * (e.hp / e.maxHp), 3);
       }
     }
 
-    // Bullets
     for (let i = 0; i < state.bullets.length; i++) {
       const b = state.bullets[i];
-
-      // Fast scaling to bullet size
-      const scale = b.size / 10; // Base sprite was drawn at size 10
+      const scale = b.size / 10;
       const w = BULLET_SPRITE.width * scale;
       const h = BULLET_SPRITE.height * scale;
-
       ctx.drawImage(BULLET_SPRITE, b.x - w / 2, b.y - h / 2, w, h);
     }
 
-    // Player
     const p = state.player;
-    const r = p.size / 2; // <-- Defined here in scope for both body and muzzle flash
+    const r = p.size / 2;
     let visible = true;
     if (p.invulnUntil > state.elapsed) {
       const remaining = p.invulnUntil - state.elapsed;
@@ -1037,7 +1077,6 @@ export function createEngine(onGameOver) {
       ctx.shadowBlur = 0;
     }
 
-    // --- 40ms glowing muzzle flash arc ---
     if (p.muzzleFlash > 0) {
       ctx.fillStyle = "#ffffff";
       ctx.shadowColor = "#a5f3e0";
@@ -1049,26 +1088,20 @@ export function createEngine(onGameOver) {
     }
 
     ctx.restore();
+    ctx.restore();
 
-    ctx.restore(); // End Camera
-
-    // --- LOW HEALTH VIGNETTE ---
-    if (state.alive && p.health <= 35) {
-      // Oscillates smoothly between 0 and 1 using elapsed game time
-      const pulse = (Math.sin(state.elapsed * 0.008) + 1) * 0.5;
-
+    if (state.alive && p.health <= 25) {
+      const pulse = (Math.sin(state.heartbeatPhase) + 1) * 0.5;
       const vigGrad = ctx.createRadialGradient(
           CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.25,
           CANVAS_W / 2, CANVAS_H / 2, CANVAS_W * 0.62
       );
       vigGrad.addColorStop(0, "rgba(248, 81, 73, 0)");
       vigGrad.addColorStop(1, `rgba(248, 81, 73, ${0.12 + pulse * 0.28})`);
-
       ctx.fillStyle = vigGrad;
       ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     }
 
-    // --- DRAW HUD ---
     ctx.fillStyle = "#0d1117";
     ctx.fillRect(0, 0, CANVAS_W, HUD_HEIGHT);
 
