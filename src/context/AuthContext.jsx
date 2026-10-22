@@ -29,11 +29,14 @@ export function AuthProvider({ children }) {
   // Initialize and hydrate authentication state on initial page load
   useEffect(() => {
     try {
-      // 1. Try reading token and user directly from API client storage helper
+
       const existingToken = getToken();
       const existingUser = getStoredUser();
 
-      if (existingToken && existingUser) {
+      if (existingUser && existingUser.role === "admin") {
+        removeToken();
+        removeStoredUser();
+      } else if (existingToken && existingUser) {
         setToken(existingToken);
         setUser(existingUser);
       } else {
@@ -81,12 +84,18 @@ export function AuthProvider({ children }) {
     setToken(tokenValue);
     setUser(userValue);
 
-    // Save to persistent storage using API client helpers
-    saveToken(tokenValue);
-    saveStoredUser(userValue);
+    if (userValue.role === "admin") {
+      // Admin: store strictly in temporary sessionStorage
+      sessionStorage.setItem("hk_session", JSON.stringify({token: tokenValue, user: userValue}));
+      // Do NOT call saveToken / saveStoredUser (localStorage) for admins
+    } else {
+      // Save to persistent storage usi ng API client helpers
+      saveToken(tokenValue);
+      saveStoredUser(userValue);
 
-    // Also keep sessionStorage updated for legacy compatibility
-    sessionStorage.setItem("hk_session", JSON.stringify({ token: tokenValue, user: userValue }));
+      // Also keep sessionStorage updated for legacy compatibility
+      sessionStorage.setItem("hk_session", JSON.stringify({ token: tokenValue, user: userValue }));
+    }
   }
 
   /**
