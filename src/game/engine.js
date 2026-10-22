@@ -207,7 +207,11 @@ export function createEngine(onGameOver) {
   }
 
   function circleHitsAnyWall(cx, cy, cr) {
-    if (cy - cr < HUD_HEIGHT) return true;
+    // Top HUD and world boundary checks
+    if (cy - cr < HUD_HEIGHT || cy + cr > WORLD_H) return true;
+    if (cx - cr < 0 || cx + cr > WORLD_W) return true;
+
+    // Check only internal arena obstacles
     for (let i = 0; i < state.walls.length; i++) {
       const w = state.walls[i];
       if (circleRectOverlap(cx, cy, cr, w.x, w.y, w.w, w.h)) return true;
@@ -259,7 +263,7 @@ export function createEngine(onGameOver) {
     const size = sizeOverride ?? t.size;
 
     if (x === undefined) {
-      const buffer = 80;
+      const buffer = 40;
       const viewLeft = state.camera.x;
       const viewRight = state.camera.x + CANVAS_W;
       const viewTop = state.camera.y;
@@ -268,25 +272,29 @@ export function createEngine(onGameOver) {
       let valid = false;
       let attempts = 0;
 
-      while (!valid && attempts < 20) {
+      while (!valid && attempts < 25) {
         const edge = Math.floor(Math.random() * 4);
-        if (edge === 0) {
+        if (edge === 0) { // Top of screen
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewTop - buffer;
-        } else if (edge === 1) {
+        } else if (edge === 1) { // Right of screen
           sx = viewRight + buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
-        } else if (edge === 2) {
+        } else if (edge === 2) { // Bottom of screen
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewBottom + buffer;
-        } else {
+        } else { // Left of screen
           sx = viewLeft - buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
         }
 
-        sy = Math.max(HUD_HEIGHT + size / 2 + 10, sy);
-        const inViewX = sx > viewLeft - size && sx < viewRight + size;
-        const inViewY = sy > viewTop - size && sy < viewBottom + size;
+        // Clamp spawn coordinates so they are strictly within world margins
+        sx = Math.max(size + 5, Math.min(WORLD_W - size - 5, sx));
+        sy = Math.max(HUD_HEIGHT + size + 5, Math.min(WORLD_H - size - 5, sy));
+
+        // Accept if not hitting any internal walls and not directly inside the player's view
+        const inViewX = sx > viewLeft + 10 && sx < viewRight - 10;
+        const inViewY = sy > viewTop + 10 && sy < viewBottom - 10;
 
         if (!(inViewX && inViewY) && !circleHitsAnyWall(sx, sy, size / 2)) {
           valid = true;
@@ -295,8 +303,9 @@ export function createEngine(onGameOver) {
       }
 
       if (!valid) {
-        sx = viewRight + buffer;
-        sy = Math.max(HUD_HEIGHT + size / 2 + 10, viewBottom + buffer);
+        // Fallback to center-clear quadrant
+        sx = Math.random() > 0.5 ? 100 : WORLD_W - 100;
+        sy = Math.random() > 0.5 ? HUD_HEIGHT + 100 : WORLD_H - 100;
       }
     }
 
@@ -943,6 +952,15 @@ export function createEngine(onGameOver) {
       ctx.roundRect(w.x + 2, w.y + 2, w.w - 4, w.h - 4, 10);
       ctx.stroke();
     }
+
+    // --- Outer Border Rim ---
+    ctx.strokeStyle = "#f85149";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, HUD_HEIGHT + 2, WORLD_W - 4, WORLD_H - HUD_HEIGHT - 4);
+
+    ctx.strokeStyle = "rgba(78, 201, 176, 0.25)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(4, HUD_HEIGHT + 4, WORLD_W - 8, WORLD_H - HUD_HEIGHT - 8);
 
     for (let i = 0; i < state.particles.length; i++) {
       const pt = state.particles[i];
