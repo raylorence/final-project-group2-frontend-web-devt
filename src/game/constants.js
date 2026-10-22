@@ -79,142 +79,15 @@ export const DIRECTIONS = {
 };
 
 export const MAPS = [
+  // ==========================================
+  // MAP 1: BIG BOXY (Pillar Grid Arena)
+  // Balanced perimeter pillars with wide cardinal passages
+  // ==========================================
   {
     name: "Big Boxy",
-    spawn: { x: 800, y: 500 }, 
-    walls: [
-      {x: 0, y: 950, w: 700, h: 50}, //main wall bottom left
-      {x: 900, y: 950, w: 700, h: 50}, //main wall bottom right
-      {x: 0, y: 40, w: 700, h: 50}, //main wall top left
-      {x: 900, y: 40, w: 700, h: 50}, //main wall top right
-
-      {x: 0, y: 900, w: 100, h: 100}, //box wall bottom left (border)
-      {x: 200, y: 900, w: 100, h: 100},
-      {x: 400, y: 900, w: 100, h: 100},
-      {x: 600, y: 900, w: 100, h: 100}, //box wall bottom gate (left)
-      {x: 900, y: 900, w: 100, h: 100}, //box wall bottom gate (right)
-      {x: 1100, y: 900, w: 100, h: 100},
-      {x: 1300, y: 900, w: 100, h: 100},
-      {x: 1500, y: 900, w: 100, h: 100},   //box wall bottom right (border)
-
-      {x: 0, y: 40, w: 100, h: 100}, //box wall top left (border)
-      {x: 200, y: 40, w: 100, h: 100},
-      {x: 400, y: 40, w: 100, h: 100},
-      {x: 600, y: 40, w: 100, h: 100}, //box wall top gate (left)
-      {x: 900, y: 40, w: 100, h: 100}, //box wall top gate (right)
-      {x: 1100, y: 40, w: 100, h: 100},
-      {x: 1300, y: 40, w: 100, h: 100},
-      {x: 1500, y: 40, w: 100, h: 100}, //box wall top right (border)
-    ],
-  },
-  {
-    name: "Rings",
     spawn: { x: 800, y: 500 },
     walls: [
-      // ===== OUTER RING (ring 1) =====
-      // Top side (left & right segments, gap in middle for N opening)
-      { x: 0,    y: 40,   w: 700, h: 50 },   // top-left
-      { x: 900,  y: 40,   w: 700, h: 50 },   // top-right
-      // Bottom side
-      { x: 0,    y: 950, w: 700, h: 50 },   // bottom-left
-      { x: 900,  y: 950, w: 700, h: 50 },   // bottom-right
-      // Left side (top & bottom segments, gap in middle for W opening)
-      { x: 0,    y: 0,   w: 50,  h: 450 },  // left-top
-      { x: 0,    y: 550, w: 50,  h: 450 },  // left-bottom
-      // Right side
-      { x: 1550, y: 0,   w: 50,  h: 450 },  // right-top
-      { x: 1550, y: 550, w: 50,  h: 450 },  // right-bottom
-      // Corner pillars
-      { x: 0,    y: 0,   w: 100, h: 100 },  // top-left pillar
-      { x: 1500, y: 0,   w: 100, h: 100 },  // top-right pillar
-      { x: 0,    y: 900, w: 100, h: 100 },  // bottom-left pillar
-      { x: 1500, y: 900, w: 100, h: 100 },  // bottom-right pillar
-
-      // ===== MIDDLE RING (ring 2) =====
-      // Top side
-      { x: 200,  y: 200, w: 500, h: 50 },   // top-left
-      { x: 900,  y: 200, w: 500, h: 50 },   // top-right
-      // Bottom side
-      { x: 200,  y: 750, w: 500, h: 50 },   // bottom-left
-      { x: 900,  y: 750, w: 500, h: 50 },   // bottom-right
-      // Left side
-      { x: 200,  y: 250, w: 50,  h: 200 },  // left-top
-      { x: 200,  y: 550, w: 50,  h: 200 },  // left-bottom
-      // Right side
-      { x: 1350, y: 250, w: 50,  h: 200 },  // right-top
-      { x: 1350, y: 550, w: 50,  h: 200 },  // right-bottom
-      // Corner pillars
-      { x: 200,  y: 200, w: 100, h: 100 },  // top-left pillar
-      { x: 1300, y: 200, w: 100, h: 100 },  // top-right pillar
-      { x: 200,  y: 700, w: 100, h: 100 },  // bottom-left pillar
-      { x: 1300, y: 700, w: 100, h: 100 },  // bottom-right pillar
-
-      // ===== INNER RING (ring 3) =====
-      // Top side
-      { x: 400,  y: 350, w: 300, h: 50 },   // top-left
-      { x: 900,  y: 350, w: 300, h: 50 },   // top-right
-      // Bottom side
-      { x: 400,  y: 600, w: 300, h: 50 },   // bottom-left
-      { x: 900,  y: 600, w: 300, h: 50 },   // bottom-right
-      // Left side
-      { x: 400,  y: 350, w: 50,  h: 100 },  // left-top
-      { x: 400,  y: 550, w: 50,  h: 100 },  // left-bottom (shares with bottom corner)
-      // Right side
-      { x: 1150, y: 350, w: 50,  h: 100 },  // right-top
-      { x: 1150, y: 550, w: 50,  h: 100 },  // right-bottom
-      // Corner pillars
-      { x: 400,  y: 400, w: 50, h: 50 },  // top-left pillar
-      { x: 1150, y: 400, w: 50, h: 50 },  // top-right pillar
-      { x: 400,  y: 600, w: 50, h: 50 },  // bottom-left pillar
-      { x: 1150, y: 600, w: 50, h: 50 },  // bottom-right pillar
-        ]
-  },
-  {
-    name: "Boxyard",
-    spawn: { x: 800, y: 215 },
-    walls: [
-      // ===== ROW 1 (odd: aligned at x = -60, 190, 440, 690, 940, 1190, 1440) =====
-      { x: -60,  y: 40,  w: 150, h: 150 },
-      { x: 190,  y: 40,  w: 150, h: 150 },
-      { x: 440,  y: 40,  w: 150, h: 150 },
-      { x: 690,  y: 40,  w: 150, h: 150 },
-      { x: 940,  y: 40,  w: 150, h: 150 },
-      { x: 1190, y: 40,  w: 150, h: 150 },
-      { x: 1440, y: 40,  w: 150, h: 150 },
-
-      // ===== ROW 2 (even: offset at x = 65, 315, 565, 815, 1065, 1315, 1565) =====
-      { x: 65,   y: 290, w: 150, h: 150 },
-      { x: 315,  y: 290, w: 150, h: 150 },
-      { x: 565,  y: 290, w: 150, h: 150 },
-      { x: 815,  y: 290, w: 150, h: 150 },
-      { x: 1065, y: 290, w: 150, h: 150 },
-      { x: 1315, y: 290, w: 150, h: 150 },
-      { x: 1565, y: 290, w: 150, h: 150 },
-
-      // ===== ROW 3 (odd: aligned) =====
-      { x: -60,  y: 540, w: 150, h: 150 },
-      { x: 190,  y: 540, w: 150, h: 150 },
-      { x: 440,  y: 540, w: 150, h: 150 },
-      { x: 690,  y: 540, w: 150, h: 150 },
-      { x: 940,  y: 540, w: 150, h: 150 },
-      { x: 1190, y: 540, w: 150, h: 150 },
-      { x: 1440, y: 540, w: 150, h: 150 },
-
-      // ===== ROW 4 (even: offset) =====
-      { x: 65,   y: 790, w: 150, h: 150 },
-      { x: 315,  y: 790, w: 150, h: 150 },
-      { x: 565,  y: 790, w: 150, h: 150 },
-      { x: 815,  y: 790, w: 150, h: 150 },
-      { x: 1065, y: 790, w: 150, h: 150 },
-      { x: 1315, y: 790, w: 150, h: 150 },
-      { x: 1565, y: 790, w: 150, h: 150 },
-    ]
-  },
-  {
-    name: "The Core",
-    spawn: { x: 800, y: 520 },
-    walls: [
-      // Outer perimeter borders (leaving 200px gates at midpoints)
+      // Outer Perimeter Walls (with 200px gates at midpoints)
       { x: 0,    y: 40,  w: 700, h: 40 },
       { x: 900,  y: 40,  w: 700, h: 40 },
       { x: 0,    y: 960, w: 700, h: 40 },
@@ -224,103 +97,188 @@ export const MAPS = [
       { x: 1560, y: 40,  w: 40,  h: 420 },
       { x: 1560, y: 580, w: 40,  h: 420 },
 
-      // Central Pillar Complex (split cross with 200px middle courtyard)
-      { x: 620, y: 360, w: 120, h: 120 }, // Top-Left Center
-      { x: 860, y: 360, w: 120, h: 120 }, // Top-Right Center
-      { x: 620, y: 560, w: 120, h: 120 }, // Bottom-Left Center
-      { x: 860, y: 560, w: 120, h: 120 }, // Bottom-Right Center
+      // North Pillar Row (100x100 blocks, 160px-200px gaps)
+      { x: 200,  y: 180, w: 100, h: 100 },
+      { x: 500,  y: 180, w: 100, h: 100 },
+      { x: 1000, y: 180, w: 100, h: 100 },
+      { x: 1300, y: 180, w: 100, h: 100 },
 
-      // Outer Flanking Diamonds / Bunkers (isolated blocks)
-      { x: 260,  y: 240, w: 140, h: 140 },
-      { x: 1200, y: 240, w: 140, h: 140 },
-      { x: 260,  y: 660, w: 140, h: 140 },
-      { x: 1200, y: 660, w: 140, h: 140 },
+      // South Pillar Row
+      { x: 200,  y: 720, w: 100, h: 100 },
+      { x: 500,  y: 720, w: 100, h: 100 },
+      { x: 1000, y: 720, w: 100, h: 100 },
+      { x: 1300, y: 720, w: 100, h: 100 },
+
+      // Center Flank Columns (Creating wide central ring)
+      { x: 200,  y: 450, w: 100, h: 100 },
+      { x: 1300, y: 450, w: 100, h: 100 },
     ],
   },
+
+  // ==========================================
+  // MAP 2: RINGS (Concentric Chokepoints)
+  // Segmented dual rings with wide 200px cardinal breaches
+  // ==========================================
+  {
+    name: "Rings",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // Outer Perimeter
+      { x: 0,    y: 40,  w: 700, h: 40 },
+      { x: 900,  y: 40,  w: 700, h: 40 },
+      { x: 0,    y: 960, w: 700, h: 40 },
+      { x: 900,  y: 960, w: 700, h: 40 },
+      { x: 0,    y: 40,  w: 40,  h: 420 },
+      { x: 0,    y: 580, w: 40,  h: 420 },
+      { x: 1560, y: 40,  w: 40,  h: 420 },
+      { x: 1560, y: 580, w: 40,  h: 420 },
+
+      // Middle Ring Segments (Gaps at N, S, E, W for uninterrupted kiting)
+      { x: 260,  y: 200, w: 440, h: 40 },  // Top-left bar
+      { x: 900,  y: 200, w: 440, h: 40 },  // Top-right bar
+      { x: 260,  y: 760, w: 440, h: 40 },  // Bottom-left bar
+      { x: 900,  y: 760, w: 440, h: 40 },  // Bottom-right bar
+
+      { x: 260,  y: 240, w: 40,  h: 220 }, // Left-top wing
+      { x: 260,  y: 540, w: 40,  h: 220 }, // Left-bottom wing
+      { x: 1300, y: 240, w: 40,  h: 220 }, // Right-top wing
+      { x: 1300, y: 540, w: 40,  h: 220 }, // Right-bottom wing
+
+      // Center Courtyard Buffers (Corners protecting center spawn)
+      { x: 560, y: 360, w: 60, h: 60 },
+      { x: 980, y: 360, w: 60, h: 60 },
+      { x: 560, y: 580, w: 60, h: 60 },
+      { x: 980, y: 580, w: 60, h: 60 },
+    ],
+  },
+
+  // ==========================================
+  // MAP 3: BOXYARD (Staggered Column Orchard)
+  // Symmetric 3-row grid with open diagonal and cardinal lanes
+  // ==========================================
+  {
+    name: "Boxyard",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // Outer Perimeter
+      { x: 0,    y: 40,  w: 1600, h: 40 },
+      { x: 0,    y: 960, w: 1600, h: 40 },
+      { x: 0,    y: 40,  w: 40,   h: 960 },
+      { x: 1560, y: 40,  w: 40,   h: 960 },
+
+      // Row 1 (North row: 120x100 blocks, 180px gaps)
+      { x: 160,  y: 180, w: 120, h: 100 },
+      { x: 460,  y: 180, w: 120, h: 100 },
+      { x: 740,  y: 180, w: 120, h: 100 },
+      { x: 1020, y: 180, w: 120, h: 100 },
+      { x: 1320, y: 180, w: 120, h: 100 },
+
+      // Row 2 (Middle row: staggered flanking blocks, center kept clear)
+      { x: 310,  y: 450, w: 120, h: 100 },
+      { x: 1170, y: 450, w: 120, h: 100 },
+
+      // Row 3 (South row: matches North row)
+      { x: 160,  y: 720, w: 120, h: 100 },
+      { x: 460,  y: 720, w: 120, h: 100 },
+      { x: 740,  y: 720, w: 120, h: 100 },
+      { x: 1020, y: 720, w: 120, h: 100 },
+      { x: 1320, y: 720, w: 120, h: 100 },
+    ],
+  },
+
+  // ==========================================
+  // MAP 4: THE CORE (Split Vault Fortress)
+  // Central pincer hub with 4 peripheral bunkers
+  // ==========================================
+  {
+    name: "The Core",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // Outer Perimeter
+      { x: 0,    y: 40,  w: 700, h: 40 },
+      { x: 900,  y: 40,  w: 700, h: 40 },
+      { x: 0,    y: 960, w: 700, h: 40 },
+      { x: 900,  y: 960, w: 700, h: 40 },
+      { x: 0,    y: 40,  w: 40,  h: 420 },
+      { x: 0,    y: 580, w: 40,  h: 420 },
+      { x: 1560, y: 40,  w: 40,  h: 420 },
+      { x: 1560, y: 580, w: 40,  h: 420 },
+
+      // Central Hub Pillars (Split with 160px central lanes in all 4 directions)
+      { x: 620, y: 360, w: 120, h: 110 },
+      { x: 860, y: 360, w: 120, h: 110 },
+      { x: 620, y: 530, w: 120, h: 110 },
+      { x: 860, y: 530, w: 120, h: 110 },
+
+      // Corner Quad Bunkers
+      { x: 260,  y: 220, w: 130, h: 130 },
+      { x: 1210, y: 220, w: 130, h: 130 },
+      { x: 260,  y: 650, w: 130, h: 130 },
+      { x: 1210, y: 650, w: 130, h: 130 },
+    ],
+  },
+
+  // ==========================================
+  // MAP 5: ARTERY LANES (Trident Highways)
+  // Three vertical columns with generous cross-avenues
+  // ==========================================
   {
     name: "Artery Lanes",
     spawn: { x: 800, y: 500 },
     walls: [
-      // Outer Borders
+      // Outer Perimeter
       { x: 0,    y: 40,  w: 1600, h: 40 },
       { x: 0,    y: 960, w: 1600, h: 40 },
       { x: 0,    y: 40,  w: 40,   h: 960 },
       { x: 1560, y: 40,  w: 40,   h: 960 },
 
-      // Left Vertical Channel (Divided with wide passages top/bottom/mid)
-      { x: 450, y: 160, w: 60, h: 220 },
-      { x: 450, y: 460, w: 60, h: 160 },
-      { x: 450, y: 700, w: 60, h: 200 },
+      // West Artery Wall (Split into 2 segments with a 220px cross-highway)
+      { x: 440, y: 160, w: 50, h: 260 },
+      { x: 440, y: 580, w: 50, h: 260 },
 
-      // Right Vertical Channel
-      { x: 1090, y: 160, w: 60, h: 220 },
-      { x: 1090, y: 460, w: 60, h: 160 },
-      { x: 1090, y: 700, w: 60, h: 200 },
+      // East Artery Wall (Matches West)
+      { x: 1110, y: 160, w: 50, h: 260 },
+      { x: 1110, y: 580, w: 50, h: 260 },
 
-      // Center Stage Islands (Provides cover for diagonal kiting)
-      { x: 740, y: 240, w: 120, h: 80 },
-      { x: 740, y: 720, w: 120, h: 80 },
+      // Center Island Buffers (Prevents bullets from spanning full 1600px across center)
+      { x: 740, y: 220, w: 120, h: 70 },
+      { x: 740, y: 710, w: 120, h: 70 },
+
+      // Peripheral Pods
+      { x: 180,  y: 450, w: 70, h: 100 },
+      { x: 1350, y: 450, w: 70, h: 100 },
     ],
   },
-  {
-    name: "Cellular Quads",
-    spawn: { x: 800, y: 500 },
-    walls: [
-      // Outer Border
-      { x: 0,    y: 40,  w: 1600, h: 40 },
-      { x: 0,    y: 960, w: 1600, h: 40 },
-      { x: 0,    y: 40,  w: 40,   h: 960 },
-      { x: 1560, y: 40,  w: 40,   h: 960 },
 
-      // Quadrant 1 (Top-Left Buffer)
-      { x: 280, y: 220, w: 220, h: 50 },
-      { x: 280, y: 270, w: 50,  h: 160 },
-
-      // Quadrant 2 (Top-Right Buffer)
-      { x: 1100, y: 220, w: 220, h: 50 },
-      { x: 1270, y: 270, w: 50,  h: 160 },
-
-      // Quadrant 3 (Bottom-Left Buffer)
-      { x: 280, y: 750, w: 220, h: 50 },
-      { x: 280, y: 590, w: 50,  h: 160 },
-
-      // Quadrant 4 (Bottom-Right Buffer)
-      { x: 1100, y: 750, w: 220, h: 50 },
-      { x: 1270, y: 590, w: 50,  h: 160 },
-
-      // Midfield Deflector Nodes
-      { x: 760, y: 300, w: 80, h: 80 },
-      { x: 760, y: 640, w: 80, h: 80 },
-    ],
-  },
+  // ==========================================
+  // MAP 6: BUNKER (Remastered Open Vault)
+  // Balanced asymmetrical layout with no cul-de-sacs or sealed wings
+  // ==========================================
   {
     name: "Bunker",
-    spawn: { x: 420, y: 520 },
+    spawn: { x: 800, y: 500 },
     walls: [
-      // ===== OUTER PERIMETER BORDER =====
-      { x: 0,    y: 40,  w: 1600, h: 50 },  // top
-      { x: 0,    y: 950, w: 1600, h: 50 },  // bottom
-      { x: 0,    y: 40,  w: 50,   h: 960 }, // left
-      { x: 1550, y: 40,  w: 50,   h: 960 }, // right
+      // Outer Perimeter
+      { x: 0,    y: 40,  w: 1600, h: 40 },
+      { x: 0,    y: 960, w: 1600, h: 40 },
+      { x: 0,    y: 40,  w: 40,   h: 960 },
+      { x: 1560, y: 40,  w: 40,   h: 960 },
 
-      // ===== LEFT SECURITY DIVIDER (Split with a 200px central breach) =====
-      { x: 200,  y: 160, w: 50,   h: 240 }, // top segment
-      { x: 200,  y: 640, w: 50,   h: 240 }, // bottom segment
+      // West Security Barrier (Separated with wide 200px gap)
+      { x: 220,  y: 170, w: 50,   h: 240 },
+      { x: 220,  y: 590, w: 50,   h: 240 },
 
-      // ===== CENTRAL VAULT PILLARS (Chamber split into 2 standalone blocks) =====
-      // Gaps between and around pillars allow fluid 8-directional flanking
-      { x: 580,  y: 380, w: 140,  h: 280 }, // west vault column
-      { x: 800,  y: 380, w: 140,  h: 280 }, // east vault column
+      // Center Vault Pillars (Replaced solid block with 2 navigable towers)
+      { x: 570,  y: 360, w: 130,  h: 280 },
+      { x: 900,  y: 360, w: 130,  h: 280 },
 
-      // ===== EAST DIVISION WING (Segmented with a 200px transit portal) =====
-      // Replaces the continuous 650px dead-end with two navigable blast doors
-      { x: 1040, y: 500, w: 220,  h: 50 },  // inner gate wall
-      { x: 1360, y: 500, w: 190,  h: 50 },  // outer perimeter latch (gap at 1260-1360)
+      // East Transit Blast Doors (Split with a 200px middle gate)
+      { x: 1120, y: 500, w: 180,  h: 50 },
+      { x: 1380, y: 500, w: 180,  h: 50 },
 
-      // ===== PERIPHERAL COVER NODES =====
-      // Provides obstacle variety for bullet/enemy clearance in open zones
-      { x: 1100, y: 220, w: 100,  h: 80 },  // northeast bunker bunker
-      { x: 1100, y: 720, w: 100,  h: 80 },  // southeast bunker bunker
+      // Peripheral Pods
+      { x: 1180, y: 230, w: 90,   h: 80 },
+      { x: 1180, y: 690, w: 90,   h: 80 },
     ],
-  }
+  },
 ];
