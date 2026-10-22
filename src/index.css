@@ -33,6 +33,54 @@ html {
   background: var(--bg);
 }
 
+/* TEXT CURSOR */
+
+/* Prevent accidental text highlights and I-beam cursor on the UI */
+body,
+.hk-landing,
+.container,
+.card,
+.navbar,
+canvas {
+  cursor: default;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  user-select: none;         /* Standard */
+}
+
+/* Re-enable the standard text cursor for form fields */
+input,
+textarea,
+[contenteditable="true"] {
+  cursor: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
+
+/* Allow text selection specifically for data tables and admin records */
+.selectable-table,
+.selectable-table td,
+.selectable-table th {
+  cursor: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
+
+/* Keep action buttons with normal pointers */
+.selectable-table button {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Ensure interactive elements use standard pointing hand */
+button,
+a,
+[role="button"] {
+  cursor: pointer;
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;

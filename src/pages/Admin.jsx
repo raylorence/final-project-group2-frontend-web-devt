@@ -111,7 +111,7 @@ export default function Admin() {
                   {userSearch ? `No players found matching "${userSearch}".` : "No registered players found."}
                 </p>
             ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table className="selectable-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                   <tr
                       style={{
@@ -191,7 +191,7 @@ export default function Admin() {
                   {scoreSearch ? `No scores found matching "${scoreSearch}".` : "No scores recorded."}
                 </p>
             ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table className="selectable-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                   <tr
                       style={{
