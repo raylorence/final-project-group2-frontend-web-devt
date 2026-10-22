@@ -1,6 +1,7 @@
 import {
   initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
-  playHeartbeatLub, playHeartbeatDub,
+  playHeartbeatLub, playHeartbeatDub, playCellDivide, playWallImpact, playTankThud, playWormSquirm,
+  resetSoundCooldowns,
 } from "./sound.js";
 
 import {
@@ -121,6 +122,7 @@ export function createEngine(onGameOver) {
 
   function reset() {
     initAudio();
+    resetSoundCooldowns();
 
     const map = pickMap();
 
@@ -168,7 +170,7 @@ export function createEngine(onGameOver) {
       nextHeartbeatDub: 0,
       heartbeatPhase: 0,
       camera: { x: 0, y: 0 },
-      breadcrumbs: [],
+      breadcrumbs: [{ x: map.spawn.x, y: map.spawn.y, time: 0 }],
       lastBreadcrumbPos: { x: map.spawn.x, y: map.spawn.y },
     };
 
@@ -215,18 +217,22 @@ export function createEngine(onGameOver) {
 
   // Robust circle movement with sliding support
   function tryMoveCircle(x, y, r, mx, my) {
-    // Both axes clear
+    // Full diagonal move
     if (!circleHitsAnyWall(x + mx, y + my, r)) {
       return { x: x + mx, y: y + my };
     }
-    // Slide horizontally
-    if (!circleHitsAnyWall(x + mx, y, r)) {
-      return { x: x + mx, y };
+
+    // Test sliding along individual axes
+    const canSlideX = !circleHitsAnyWall(x + mx, y, r);
+    const canSlideY = !circleHitsAnyWall(x, y + my, r);
+
+    // If both are individually clear, prioritize whichever axis has greater displacement
+    if (canSlideX && canSlideY) {
+      return Math.abs(mx) >= Math.abs(my) ? { x: x + mx, y } : { x, y: y + my };
     }
-    // Slide vertically
-    if (!circleHitsAnyWall(x, y + my, r)) {
-      return { x, y: y + my };
-    }
+    if (canSlideX) return { x: x + mx, y };
+    if (canSlideY) return { x, y: y + my };
+
     return { x, y };
   }
 
@@ -572,6 +578,7 @@ export function createEngine(onGameOver) {
           b.y < HUD_HEIGHT || b.y > WORLD_H + 20;
 
       if (outOfBounds || circleHitsAnyWall(b.x, b.y, b.size / 2)) {
+        playWallImpact();
         state.bullets.splice(i, 1);
       }
     }
@@ -609,6 +616,19 @@ export function createEngine(onGameOver) {
       state.lastHeartbeat = 0;
       state.nextHeartbeatDub = 0;
       state.heartbeatPhase = 0;
+    }
+
+    let closestWormDist = Infinity;
+    for (let i = 0; i < state.enemies.length; i++) {
+      const e = state.enemies[i];
+      if (e.type === "worm") {
+        const d = Math.hypot(e.x - p.x, e.y - p.y);
+        if (d < closestWormDist) closestWormDist = d;
+      }
+    }
+
+    if (closestWormDist < 450) {
+      playWormSquirm(state.elapsed, closestWormDist / 450);
     }
 
     // Record breadcrumb every 70px of travel or major turn
@@ -671,6 +691,22 @@ export function createEngine(onGameOver) {
       e.x = moved.x;
       e.y = moved.y;
       e.wobble += dt * 6;
+
+// --- TANK FOOTSTEP THUD ---
+      if (e.type === "tank") {
+        // Step every full rotation of wobble (~1.05 seconds per cycle at 6 rad/s)
+        const prevWobble = e.wobble - dt * 6;
+        const crossedCycle = Math.floor(e.wobble / Math.PI) > Math.floor(prevWobble / Math.PI);
+
+        if (crossedCycle) {
+          const distToPlayer = Math.hypot(e.x - p.x, e.y - p.y);
+          const maxAudibleDist = 550;
+
+          if (distToPlayer < maxAudibleDist) {
+            playTankThud(state.elapsed, distToPlayer / maxAudibleDist);
+          }
+        }
+      }
 
       const hitRadius = (e.size / 2 + p.size / 2);
       if (state.elapsed > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
@@ -737,6 +773,7 @@ export function createEngine(onGameOver) {
             if (e.type === "splitter" && e.size > 14) {
               spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
               spawnEnemy("splitter", e.x + 10, e.y, e.size * 0.6, 1);
+              playCellDivide();
             }
             state.enemies.splice(ei, 1);
           } else {
