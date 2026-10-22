@@ -1,0 +1,252 @@
+
+.hk-landing {
+    --hk-bg: #11130f;
+    --hk-green: #b6b96c;
+    --hk-cream: #eee1bd;
+    --hk-muted: #aaa38b;
+    --hk-red: #984337;
+    --hk-border: #3b3d2d;
+
+    height: calc(100vh - 52px);
+    min-height: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(
+            ellipse at 76% 45%,
+            rgba(150, 145, 78, 0.09),
+            transparent 42%
+        ),
+        var(--hk-bg);
+    color: var(--hk-cream);
+    font-family: "Courier New", monospace;
+}
+
+.hk-switch-account {
+    margin: 14px 0 0;
+    color: var(--hk-muted);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.hk-switch-account strong {
+    color: var(--hk-cream);
+}
+
+.hk-switch-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 4px;
+    color: var(--hk-green);
+    font-family: inherit;
+    font-size: 11px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: inherit;
+}
+
+.hk-switch-link:hover {
+    background: none;
+    color: #e3e6ad;
+    transform: none;
+}
+
+
+.hk-landing *,
+.hk-landing *::before,
+.hk-landing *::after {
+    box-sizing: border-box;
+}
+
+.hk-hero {
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 32px 11% 55px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--hk-border);
+}
+
+.hk-hero::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 66%;
+    width: 1px;
+    background: rgba(182, 185, 108, 0.07);
+    pointer-events: none;
+}
+
+.hk-hero-content {
+    position: relative;
+    z-index: 1;
+    width: min(570px, 100%);
+}
+
+.hk-system-label {
+    margin: 0 0 22px;
+    color: var(--hk-green);
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+.hk-hero h1 {
+    margin: 0;
+    color: var(--hk-cream);
+    font-family: Impact, "Arial Narrow", sans-serif;
+    font-size: clamp(52px, 6.3vw, 88px);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: 1px;
+}
+
+.hk-hero h1 span {
+    color: var(--hk-green);
+}
+
+.hk-divider {
+    width: 100%;
+    height: 1px;
+    margin: 24px 0;
+    background: var(--hk-border);
+}
+
+.hk-tagline {
+    margin: 0 0 13px;
+    color: var(--hk-cream);
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.hk-description {
+    max-width: 520px;
+    margin: 0;
+    color: var(--hk-muted);
+    font-size: 12px;
+    line-height: 1.9;
+}
+
+.hk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.hk-primary-btn,
+.hk-secondary-btn {
+    min-height: 40px;
+    padding: 12px 18px;
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+
+.hk-primary-btn {
+    border: 1px solid #b15a4b;
+    background: var(--hk-red);
+    color: #fff0d9;
+}
+
+.hk-primary-btn:hover {
+    background: #b45141;
+}
+
+.hk-secondary-btn {
+    border: 1px solid #555642;
+    background: transparent;
+    color: var(--hk-cream);
+}
+
+.hk-secondary-btn:hover {
+    background: #292b20;
+}
+
+.hk-warning {
+    margin: 23px 0 0;
+    color: #c16d4b;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+.hk-status {
+    position: absolute;
+    right: 3%;
+    bottom: 17px;
+    left: 3%;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--hk-muted);
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 600px) {
+    .hk-landing {
+        height: calc(100dvh - 52px);
+    }
+
+    .hk-hero {
+        padding: 24px 7% 65px;
+    }
+
+    .hk-system-label {
+        font-size: 8px;
+        letter-spacing: 1px;
+    }
+
+    .hk-hero h1 {
+        font-size: clamp(48px, 12vw, 68px);
+    }
+
+    .hk-description {
+        font-size: 11px;
+        line-height: 1.7;
+    }
+
+    .hk-status {
+        font-size: 7px;
+        letter-spacing: 0;
+    }
+}
+
+@media (max-height: 650px) {
+    .hk-hero {
+        padding-top: 15px;
+        padding-bottom: 40px;
+    }
+
+    .hk-system-label {
+        margin-bottom: 12px;
+    }
+
+    .hk-hero h1 {
+        font-size: clamp(42px, 8vh, 60px);
+    }
+
+    .hk-divider {
+        margin: 13px 0;
+    }
+
+    .hk-description {
+        line-height: 1.6;
+    }
+
+    .hk-actions {
+        margin-top: 15px;
+    }
+
+    .hk-warning {
+        margin-top: 12px;
+    }
+}

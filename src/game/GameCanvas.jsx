@@ -131,6 +131,9 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
         margin: "0 auto",
         cursor: "default",
         outline: "none",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        touchAction: "none"
       }}
       tabIndex={0}
     />
