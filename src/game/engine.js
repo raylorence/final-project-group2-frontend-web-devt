@@ -489,7 +489,8 @@ export function createEngine(onGameOver) {
 
     if (!hasLineOfSight(e.x, e.y, p.x, p.y, radius)) {
       // Find the most recent breadcrumb that this enemy still has line-of-sight to
-      for (let i = state.breadcrumbs.length - 1; i >= 0; i--) {
+      const searchLimit = Math.max(0, state.breadcrumbs.length - 5);
+      for (let i = state.breadcrumbs.length - 1; i >= searchLimit; i--) {
         const bc = state.breadcrumbs[i];
         if (hasLineOfSight(e.x, e.y, bc.x, bc.y, radius)) {
           targetX = bc.x;
