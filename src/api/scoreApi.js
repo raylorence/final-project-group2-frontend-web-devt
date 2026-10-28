@@ -69,7 +69,6 @@ export const submitScore = async (arg1, arg2, arg3 = 0) => {
         body: {
             score,
             totalScore: score,
-            kills,
             survivalTime
         },
         requiresAuth: true,
