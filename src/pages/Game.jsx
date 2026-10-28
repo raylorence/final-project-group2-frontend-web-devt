@@ -29,7 +29,8 @@ export default function Game() {
                 const response = await submitScore(
                     dataToSubmit.score,
                     dataToSubmit.survivalTime,
-                    token
+                    token,
+                    dataToSubmit.kills ?? 0
                 );
                 if (response?.isPersonalBest) {
                     setIsBestRecord(true);
@@ -191,7 +192,10 @@ export default function Game() {
                             INFECTED
                         </h1>
                         <p style={{ fontSize: 22, margin: "0 0 4px 0" }}>
-                            Viral Entities Eliminated: <strong>{result.score}</strong>
+                            Viral Entities Eliminated: <strong>{result.kills ?? result.score}</strong>
+                        </p>
+                        <p style={{ fontSize: 22, margin: "0 0 4px 0" }}>
+                            Score: <strong>{result.score}</strong>
                         </p>
                         <p className="muted" style={{ marginBottom: 18, fontSize: 16 }}>
                             Survival Duration: <strong>{result.survivalTime}s</strong>
