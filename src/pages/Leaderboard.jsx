@@ -97,7 +97,6 @@ export default function Leaderboard() {
                                 <th style={{ padding: 10 }}>#</th>
                                 <th style={{ padding: 10 }}>Player</th>
                                 <th style={{ padding: 10 }}>Score</th>
-                                <th style={{ padding: 10 }}>Kills</th>
                                 <th style={{ padding: 10 }}>Survived</th>
                             </tr>
                             </thead>
