@@ -40,7 +40,7 @@ export const getLeaderboard = async () => {
  * @param {string|number} [arg3] - Token or Survival time
  * @returns {Promise<object>} Match submission response
  */
-export const submitScore = async (arg1, arg2, arg3, kills = 0) => {
+export const submitScore = async (arg1, arg2, arg3 = 0) => {
     let score = 0;
     let survivalTime = 0;
     let token = null;

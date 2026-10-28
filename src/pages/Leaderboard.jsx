@@ -113,9 +113,6 @@ export default function Leaderboard() {
                                     <td style={{ padding: 10, fontWeight: 700 }}>
                                         {r.score ?? r.totalScore ?? 0}
                                     </td>
-                                    <td style={{ padding: 10}}>
-                                        {r.kills ?? "-"}
-                                    </td>
                                     <td style={{ padding: 10 }} className="muted">
                                         {r.survivalTime !== undefined && r.survivalTime !== null
                                             ? `${r.survivalTime}s`

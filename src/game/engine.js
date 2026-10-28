@@ -1153,11 +1153,11 @@ export function createEngine(onGameOver) {
     ctx.textAlign = "right";
     ctx.font = "bold 15px system-ui";
     ctx.fillStyle = "#4ec9b0";
-    ctx.fillText(`SCORE ${state.score} · KILLS ${state.kills}`, CANVAS_W - 16, barY + 12);
+    ctx.fillText(`SCORE ${state.score}`, CANVAS_W - 16, barY + 9);
 
     ctx.font = "11px system-ui";
     ctx.fillStyle = "#7d8590";
-    ctx.fillText(`${(state.elapsed / 1000).toFixed(1)}s · ${state.mapName}`, CANVAS_W - 16, barY + 26);
+    ctx.fillText(`${(state.elapsed / 1000).toFixed(1)}s · ${state.mapName}`, CANVAS_W - 16, barY + 22);
   }
 
   return {
