@@ -242,12 +242,6 @@ export const MAPS = [
     name: "Pinwheel",
     spawn: { x: 800, y: 420 },
     walls: [
-      // ===== OUTER BORDER =====
-      { x: 0,    y: 40,  w: 1600, h: 50 },  // top
-      { x: 0,    y: 950, w: 1600, h: 50 },  // bottom
-      { x: 0,    y: 40,  w: 50,   h: 960 }, // left
-      { x: 1550, y: 40,  w: 50,   h: 960 }, // right
- 
       // ===== PINWHEEL ARMS (180-degree symmetric, none touch) =====
       { x: 500,  y: 260, w: 500,  h: 50 },  // top arm
       { x: 1150, y: 250, w: 50,   h: 400 }, // right arm
@@ -273,12 +267,6 @@ export const MAPS = [
     name: "Debris Field",
     spawn: { x: 800, y: 520 },
     walls: [
-      // ===== OUTER BORDER =====
-      { x: 0,    y: 40,  w: 1600, h: 50 },  // top
-      { x: 0,    y: 950, w: 1600, h: 50 },  // bottom
-      { x: 0,    y: 40,  w: 50,   h: 960 }, // left
-      { x: 1550, y: 40,  w: 50,   h: 960 }, // right
- 
       // ===== SCATTERED BLOCKS (irregular, 150px+ apart) =====
       { x: 1080, y: 620, w: 100, h: 90 },
       { x: 570, y: 250, w: 120, h: 80 },
