@@ -160,6 +160,7 @@ export function createEngine(onGameOver) {
       bgMotes,
       trailTimer: 0,
       score: 0,
+      kills: 0,
       elapsed: 0,
       spawnAccum: 0,
       spawnInterval: DIFFICULTY.initialSpawnMs,
@@ -736,6 +737,7 @@ export function createEngine(onGameOver) {
             state.gameOverFired = true;
             onGameOver({
               score: state.score,
+              kills: state.kills,
               survivalTime: Math.floor(state.elapsed / 1000),
             });
           }
@@ -776,6 +778,7 @@ export function createEngine(onGameOver) {
           if (e.hp <= 0) {
             playKill(e.type);
             state.score += e.points;
+            state.kills += 1;
             state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
             explode(e.x, e.y, e.color, 8);
 
@@ -1150,11 +1153,11 @@ export function createEngine(onGameOver) {
     ctx.textAlign = "right";
     ctx.font = "bold 15px system-ui";
     ctx.fillStyle = "#4ec9b0";
-    ctx.fillText(`KILLS ${state.score}`, CANVAS_W - 16, barY + 12);
+    ctx.fillText(`SCORE ${state.score}`, CANVAS_W - 16, barY + 9);
 
     ctx.font = "11px system-ui";
     ctx.fillStyle = "#7d8590";
-    ctx.fillText(`${(state.elapsed / 1000).toFixed(1)}s · ${state.mapName}`, CANVAS_W - 16, barY + 26);
+    ctx.fillText(`${(state.elapsed / 1000).toFixed(1)}s · ${state.mapName}`, CANVAS_W - 16, barY + 22);
   }
 
   return {
