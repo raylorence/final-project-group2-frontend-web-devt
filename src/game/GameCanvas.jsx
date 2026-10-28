@@ -54,19 +54,6 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
       
       engineRef.current.draw(ctx); // FIXED: Removed 'pausedRef.current'
 
-      // Draw Pause Overlay manually on top of the canvas
-      if (pausedRef.current && !frozenRef.current) {
-        ctx.fillStyle = "rgba(7, 11, 16, 0.65)";
-        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-        ctx.fillStyle = "#4ec9b0";
-        ctx.font = "bold 44px system-ui";
-        ctx.textAlign = "center";
-        ctx.fillText("PAUSED", CANVAS_W / 2, CANVAS_H / 2 - 10);
-        ctx.fillStyle = "#7d8590";
-        ctx.font = "16px system-ui";
-        ctx.fillText("Press Esc to resume", CANVAS_W / 2, CANVAS_H / 2 + 30);
-      }
-
       rafRef.current = requestAnimationFrame(loop);
     }
 
@@ -75,7 +62,7 @@ export default function GameCanvas({ onGameOver, onPause, paused = false }) {
     function onKeyDown(e) {
       // Unlock audio safely (without creating new contexts)
       unlockAudio();
-      
+
       const k = e.key.toLowerCase();
 
       // Prevent accidental reload keys during gameplay

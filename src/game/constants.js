@@ -50,11 +50,11 @@ export const ENEMY_TYPES = {
   },
     worm: {
       size: 22,
-      speed: 75,
+      speed: 80,
       hp: 2,
-      damage: 8,
+      damage: 12,
       color: "#168BFF",
-      points: 15,
+      points: 8,
       spawnWeight: 2,
   },
 };
@@ -79,164 +79,204 @@ export const DIRECTIONS = {
 };
 
 export const MAPS = [
+  // ==========================================
+  // MAP 1: BIG BOXY (Pillar Grid Arena)
+  // Clean perimeter, internal pillars, wide avenues
+  // ==========================================
   {
     name: "Big Boxy",
-    spawn: { x: 800, y: 500 }, 
+    spawn: { x: 800, y: 500 },
     walls: [
-      {x: 0, y: 950, w: 700, h: 50}, //main wall bottom left
-      {x: 900, y: 950, w: 700, h: 50}, //main wall bottom right
-      {x: 0, y: 40, w: 700, h: 50}, //main wall top left
-      {x: 900, y: 40, w: 700, h: 50}, //main wall top right
+      // North Pillar Row (100x100 blocks, wide passages)
+      { x: 200,  y: 180, w: 100, h: 100 },
+      { x: 500,  y: 180, w: 100, h: 100 },
+      { x: 1000, y: 180, w: 100, h: 100 },
+      { x: 1300, y: 180, w: 100, h: 100 },
 
-      {x: 0, y: 900, w: 100, h: 100}, //box wall bottom left (border)
-      {x: 200, y: 900, w: 100, h: 100},
-      {x: 400, y: 900, w: 100, h: 100},
-      {x: 600, y: 900, w: 100, h: 100}, //box wall bottom gate (left)
-      {x: 900, y: 900, w: 100, h: 100}, //box wall bottom gate (right)
-      {x: 1100, y: 900, w: 100, h: 100},
-      {x: 1300, y: 900, w: 100, h: 100},
-      {x: 1500, y: 900, w: 100, h: 100},   //box wall bottom right (border)
+      // South Pillar Row
+      { x: 200,  y: 720, w: 100, h: 100 },
+      { x: 500,  y: 720, w: 100, h: 100 },
+      { x: 1000, y: 720, w: 100, h: 100 },
+      { x: 1300, y: 720, w: 100, h: 100 },
 
-      {x: 0, y: 40, w: 100, h: 100}, //box wall top left (border)
-      {x: 200, y: 40, w: 100, h: 100},
-      {x: 400, y: 40, w: 100, h: 100},
-      {x: 600, y: 40, w: 100, h: 100}, //box wall top gate (left)
-      {x: 900, y: 40, w: 100, h: 100}, //box wall top gate (right)
-      {x: 1100, y: 40, w: 100, h: 100},
-      {x: 1300, y: 40, w: 100, h: 100},
-      {x: 1500, y: 40, w: 100, h: 100}, //box wall top right (border)
+      // Center Flank Columns
+      { x: 200,  y: 450, w: 100, h: 100 },
+      { x: 1300, y: 450, w: 100, h: 100 },
     ],
   },
+
+  // ==========================================
+  // MAP 2: RINGS (Concentric Chokepoints)
+  // Segmented internal ring with 200px cardinal breaches
+  // ==========================================
   {
     name: "Rings",
     spawn: { x: 800, y: 500 },
     walls: [
-      // ===== OUTER RING (ring 1) =====
-      // Top side (left & right segments, gap in middle for N opening)
-      { x: 0,    y: 40,   w: 700, h: 50 },   // top-left
-      { x: 900,  y: 40,   w: 700, h: 50 },   // top-right
-      // Bottom side
-      { x: 0,    y: 950, w: 700, h: 50 },   // bottom-left
-      { x: 900,  y: 950, w: 700, h: 50 },   // bottom-right
-      // Left side (top & bottom segments, gap in middle for W opening)
-      { x: 0,    y: 0,   w: 50,  h: 450 },  // left-top
-      { x: 0,    y: 550, w: 50,  h: 450 },  // left-bottom
-      // Right side
-      { x: 1550, y: 0,   w: 50,  h: 450 },  // right-top
-      { x: 1550, y: 550, w: 50,  h: 450 },  // right-bottom
-      // Corner pillars
-      { x: 0,    y: 0,   w: 100, h: 100 },  // top-left pillar
-      { x: 1500, y: 0,   w: 100, h: 100 },  // top-right pillar
-      { x: 0,    y: 900, w: 100, h: 100 },  // bottom-left pillar
-      { x: 1500, y: 900, w: 100, h: 100 },  // bottom-right pillar
+      // Middle Ring Segments (Gaps at N, S, E, W for uninterrupted kiting)
+      { x: 260,  y: 200, w: 440, h: 40 },  // Top-left bar
+      { x: 900,  y: 200, w: 440, h: 40 },  // Top-right bar
+      { x: 260,  y: 760, w: 440, h: 40 },  // Bottom-left bar
+      { x: 900,  y: 760, w: 440, h: 40 },  // Bottom-right bar
 
-      // ===== MIDDLE RING (ring 2) =====
-      // Top side
-      { x: 200,  y: 200, w: 500, h: 50 },   // top-left
-      { x: 900,  y: 200, w: 500, h: 50 },   // top-right
-      // Bottom side
-      { x: 200,  y: 750, w: 500, h: 50 },   // bottom-left
-      { x: 900,  y: 750, w: 500, h: 50 },   // bottom-right
-      // Left side
-      { x: 200,  y: 250, w: 50,  h: 200 },  // left-top
-      { x: 200,  y: 550, w: 50,  h: 200 },  // left-bottom
-      // Right side
-      { x: 1350, y: 250, w: 50,  h: 200 },  // right-top
-      { x: 1350, y: 550, w: 50,  h: 200 },  // right-bottom
-      // Corner pillars
-      { x: 200,  y: 200, w: 100, h: 100 },  // top-left pillar
-      { x: 1300, y: 200, w: 100, h: 100 },  // top-right pillar
-      { x: 200,  y: 700, w: 100, h: 100 },  // bottom-left pillar
-      { x: 1300, y: 700, w: 100, h: 100 },  // bottom-right pillar
+      { x: 260,  y: 240, w: 40,  h: 220 }, // Left-top wing
+      { x: 260,  y: 540, w: 40,  h: 220 }, // Left-bottom wing
+      { x: 1300, y: 240, w: 40,  h: 220 }, // Right-top wing
+      { x: 1300, y: 540, w: 40,  h: 220 }, // Right-bottom wing
 
-      // ===== INNER RING (ring 3) =====
-      // Top side
-      { x: 400,  y: 350, w: 300, h: 50 },   // top-left
-      { x: 900,  y: 350, w: 300, h: 50 },   // top-right
-      // Bottom side
-      { x: 400,  y: 600, w: 300, h: 50 },   // bottom-left
-      { x: 900,  y: 600, w: 300, h: 50 },   // bottom-right
-      // Left side
-      { x: 400,  y: 350, w: 50,  h: 100 },  // left-top
-      { x: 400,  y: 550, w: 50,  h: 100 },  // left-bottom (shares with bottom corner)
-      // Right side
-      { x: 1150, y: 350, w: 50,  h: 100 },  // right-top
-      { x: 1150, y: 550, w: 50,  h: 100 },  // right-bottom
-      // Corner pillars
-      { x: 400,  y: 400, w: 50, h: 50 },  // top-left pillar
-      { x: 1150, y: 400, w: 50, h: 50 },  // top-right pillar
-      { x: 400,  y: 600, w: 50, h: 50 },  // bottom-left pillar
-      { x: 1150, y: 600, w: 50, h: 50 },  // bottom-right pillar
-        ]
+      // Center Courtyard Buffers (Corners protecting center spawn)
+      { x: 560,  y: 360, w: 60,  h: 60 },
+      { x: 980,  y: 360, w: 60,  h: 60 },
+      { x: 560,  y: 580, w: 60,  h: 60 },
+      { x: 980,  y: 580, w: 60,  h: 60 },
+    ],
   },
+
+  // ==========================================
+  // MAP 3: BOXYARD (Staggered Column Orchard)
+  // Symmetric 3-row grid with open diagonal and cardinal lanes
+  // ==========================================
   {
     name: "Boxyard",
-    spawn: { x: 800, y: 215 },
+    spawn: { x: 800, y: 500 },
     walls: [
-      // ===== ROW 1 (odd: aligned at x = -60, 190, 440, 690, 940, 1190, 1440) =====
-      { x: -60,  y: 40,  w: 150, h: 150 },
-      { x: 190,  y: 40,  w: 150, h: 150 },
-      { x: 440,  y: 40,  w: 150, h: 150 },
-      { x: 690,  y: 40,  w: 150, h: 150 },
-      { x: 940,  y: 40,  w: 150, h: 150 },
-      { x: 1190, y: 40,  w: 150, h: 150 },
-      { x: 1440, y: 40,  w: 150, h: 150 },
+      // Row 1 (North row: 120x100 blocks, 180px gaps)
+      { x: 160,  y: 180, w: 120, h: 100 },
+      { x: 460,  y: 180, w: 120, h: 100 },
+      { x: 740,  y: 180, w: 120, h: 100 },
+      { x: 1020, y: 180, w: 120, h: 100 },
+      { x: 1320, y: 180, w: 120, h: 100 },
 
-      // ===== ROW 2 (even: offset at x = 65, 315, 565, 815, 1065, 1315, 1565) =====
-      { x: 65,   y: 290, w: 150, h: 150 },
-      { x: 315,  y: 290, w: 150, h: 150 },
-      { x: 565,  y: 290, w: 150, h: 150 },
-      { x: 815,  y: 290, w: 150, h: 150 },
-      { x: 1065, y: 290, w: 150, h: 150 },
-      { x: 1315, y: 290, w: 150, h: 150 },
-      { x: 1565, y: 290, w: 150, h: 150 },
+      // Row 2 (Middle row: staggered flanking blocks, center kept clear)
+      { x: 310,  y: 450, w: 120, h: 100 },
+      { x: 1170, y: 450, w: 120, h: 100 },
 
-      // ===== ROW 3 (odd: aligned) =====
-      { x: -60,  y: 540, w: 150, h: 150 },
-      { x: 190,  y: 540, w: 150, h: 150 },
-      { x: 440,  y: 540, w: 150, h: 150 },
-      { x: 690,  y: 540, w: 150, h: 150 },
-      { x: 940,  y: 540, w: 150, h: 150 },
-      { x: 1190, y: 540, w: 150, h: 150 },
-      { x: 1440, y: 540, w: 150, h: 150 },
-
-      // ===== ROW 4 (even: offset) =====
-      { x: 65,   y: 790, w: 150, h: 150 },
-      { x: 315,  y: 790, w: 150, h: 150 },
-      { x: 565,  y: 790, w: 150, h: 150 },
-      { x: 815,  y: 790, w: 150, h: 150 },
-      { x: 1065, y: 790, w: 150, h: 150 },
-      { x: 1315, y: 790, w: 150, h: 150 },
-      { x: 1565, y: 790, w: 150, h: 150 },
-    ]
+      // Row 3 (South row: matches North row)
+      { x: 160,  y: 720, w: 120, h: 100 },
+      { x: 460,  y: 720, w: 120, h: 100 },
+      { x: 740,  y: 720, w: 120, h: 100 },
+      { x: 1020, y: 720, w: 120, h: 100 },
+      { x: 1320, y: 720, w: 120, h: 100 },
+    ],
   },
+
+  // ==========================================
+  // MAP 4: THE CORE (Split Vault Fortress)
+  // Central pincer hub with 4 peripheral bunkers
+  // ==========================================
   {
-    name: "Labyrinth",
+    name: "The Core",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // Central Hub Pillars (Split with 160px central lanes in all 4 directions)
+      { x: 620,  y: 360, w: 120, h: 110 },
+      { x: 860,  y: 360, w: 120, h: 110 },
+      { x: 620,  y: 530, w: 120, h: 110 },
+      { x: 860,  y: 530, w: 120, h: 110 },
+
+      // Corner Quad Bunkers
+      { x: 260,  y: 220, w: 130, h: 130 },
+      { x: 1210, y: 220, w: 130, h: 130 },
+      { x: 260,  y: 650, w: 130, h: 130 },
+      { x: 1210, y: 650, w: 130, h: 130 },
+    ],
+  },
+
+  // ==========================================
+  // MAP 5: ARTERY LANES (Trident Highways)
+  // Three vertical columns with generous cross-avenues
+  // ==========================================
+  {
+    name: "Artery Lanes",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // West Artery Wall (Split into 2 segments with a 220px cross-highway)
+      { x: 440,  y: 160, w: 50,  h: 260 },
+      { x: 440,  y: 580, w: 50,  h: 260 },
+
+      // East Artery Wall (Matches West)
+      { x: 1110, y: 160, w: 50,  h: 260 },
+      { x: 1110, y: 580, w: 50,  h: 260 },
+
+      // Center Island Buffers (Prevents bullets from spanning full 1600px across center)
+      { x: 740,  y: 220, w: 120, h: 70 },
+      { x: 740,  y: 710, w: 120, h: 70 },
+
+      // Peripheral Pods
+      { x: 180,  y: 450, w: 70,  h: 100 },
+      { x: 1350, y: 450, w: 70,  h: 100 },
+    ],
+  },
+
+  // ==========================================
+  // MAP 6: BUNKER (Remastered Open Vault)
+  // Balanced asymmetrical layout with no cul-de-sacs or sealed wings
+  // ==========================================
+  {
+    name: "Bunker",
+    spawn: { x: 800, y: 500 },
+    walls: [
+      // West Security Barrier (Separated with wide 200px gap)
+      { x: 220,  y: 170, w: 50,  h: 240 },
+      { x: 220,  y: 590, w: 50,  h: 240 },
+
+      // Center Vault Pillars (2 navigable towers)
+      { x: 570,  y: 360, w: 130, h: 280 },
+      { x: 900,  y: 360, w: 130, h: 280 },
+
+      // East Transit Blast Doors (Split with a 200px middle gate)
+      { x: 1120, y: 500, w: 180, h: 50 },
+      { x: 1380, y: 500, w: 180, h: 50 },
+
+      // Peripheral Pods
+      { x: 1180, y: 230, w: 90,  h: 80 },
+      { x: 1180, y: 690, w: 90,  h: 80 },
+    ],
+  }, 
+
+  // ==========================================
+  // MAP 7: Pinwheel 
+  // Four pinwheel arms around a central plaza, with corner pillars. Good for kiting.
+  // ==========================================
+  {
+    name: "Pinwheel",
+    spawn: { x: 800, y: 420 },
+    walls: [
+      // ===== PINWHEEL ARMS (180-degree symmetric, none touch) =====
+      { x: 500,  y: 260, w: 500,  h: 50 },  // top arm
+      { x: 1150, y: 250, w: 50,   h: 400 }, // right arm
+      { x: 600,  y: 730, w: 500,  h: 50 },  // bottom arm
+      { x: 400,  y: 390, w: 50,   h: 400 }, // left arm
+ 
+      // ===== CORNER PILLARS =====
+      { x: 200,  y: 200, w: 100,  h: 100 },
+      { x: 1300, y: 200, w: 100,  h: 100 },
+      { x: 200,  y: 740, w: 100,  h: 100 },
+      { x: 1300, y: 740, w: 100,  h: 100 },
+ 
+      // ===== CENTER PILLAR =====
+      { x: 760,  y: 480, w: 80,   h: 80 },
+    ],
+  }, 
+
+  // ==========================================
+  // MAP 8: Debris Field
+  // Open arena with irregular scattered blocks. No dead ends, so enemies keep moving.
+  // ==========================================
+  {
+    name: "Debris Field",
     spawn: { x: 800, y: 520 },
     walls: [
-      // ===== OUTER RING (solid border) =====
-      { x: 0,    y: 40,  w: 1600, h: 50 },  // top
-      { x: 0,    y: 950, w: 1600, h: 50 },  // bottom
-      { x: 0,    y: 40,  w: 50,   h: 960 }, // left
-      { x: 1550, y: 40,  w: 50,   h: 960 }, // right
-
-      // ===== MIDDLE RING (gaps: top-left & bottom-right) =====
-      { x: 400,  y: 180, w: 1000, h: 50 },  // top (gap at x 200-400)
-      { x: 200,  y: 330, w: 50,   h: 530 }, // left (gap at y 180-330)
-      { x: 1350, y: 180, w: 50,   h: 530 }, // right (gap at y 710-860)
-      { x: 200,  y: 810, w: 1000, h: 50 },  // bottom (gap at x 1200-1400)
-
-      // ===== INNER RING (gaps: top-right & bottom-left) =====
-      { x: 400,  y: 320, w: 600,  h: 50 },  // top (gap at x 1000-1200)
-      { x: 1150, y: 420, w: 50,   h: 300 }, // right (gap at y 320-420)
-      { x: 600,  y: 670, w: 600,  h: 50 },  // bottom (gap at x 400-600)
-      { x: 400,  y: 320, w: 50,   h: 250 }, // left (gap at y 570-720)
-
-      // ===== CENTER BOX (gap: top-left) =====
-      { x: 800,  y: 460, w: 80,   h: 20 },  // top
-      { x: 720,  y: 500, w: 20,   h: 80 },  // left
-      { x: 860,  y: 460, w: 20,   h: 120 }, // right
-      { x: 720,  y: 560, w: 160,  h: 20 },  // bottom
+      // ===== SCATTERED BLOCKS (irregular, 150px+ apart) =====
+      { x: 1080, y: 620, w: 100, h: 90 },
+      { x: 570, y: 250, w: 120, h: 80 },
+      { x: 270, y: 450, w: 90, h: 130 },
+      { x: 330, y: 750, w: 80, h: 60 },
+      { x: 1200, y: 260, w: 200, h: 90 },
+      { x: 960, y: 350, w: 90, h: 60 },
+      { x: 770, y: 740, w: 120, h: 70 },
+      { x: 1330, y: 540, w: 60, h: 130 },
+      { x: 520, y: 530, w: 80, h: 60 },
     ],
   }
 ];

@@ -57,15 +57,15 @@ export default function Menu() {
           <div className="card">
             <h3>Your Best</h3>
             <div style={{ marginTop: 12 }}>
-              <p style={{ fontSize: 36, fontWeight: 700, color: "#4ec9b0", margin: 0 }}>
+              <p style={{ fontSize: 38, fontWeight: 700, margin: 0 }}>
                 {bestStats.kills}
               </p>
-              <p className="muted" style={{ marginBottom: 14 }}>kills</p>
+              <p className="muted" style={{ marginBottom: 14 }}>Score</p>
 
-              <p style={{ fontSize: 24, fontWeight: 600, color: "#e6edf3", margin: 0 }}>
-                {bestStats.survivalTime}s
+              <p style={{ fontSize: 36, fontWeight: 600, margin: 0 }}>
+                {bestStats.survivalTime}
               </p>
-              <p className="muted" style={{ margin: 0 }}>survival time</p>
+              <p className="muted" style={{ marginTop: -12 }}>Survival Time</p>
             </div>
           </div>
 
