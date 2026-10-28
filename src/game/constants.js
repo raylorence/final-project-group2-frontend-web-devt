@@ -232,5 +232,51 @@ export const MAPS = [
       { x: 1180, y: 230, w: 90,  h: 80 },
       { x: 1180, y: 690, w: 90,  h: 80 },
     ],
-  },
+  }, 
+
+  // ==========================================
+  // MAP 7: Pinwheel 
+  // Four pinwheel arms around a central plaza, with corner pillars. Good for kiting.
+  // ==========================================
+  {
+    name: "Pinwheel",
+    spawn: { x: 800, y: 420 },
+    walls: [
+      // ===== PINWHEEL ARMS (180-degree symmetric, none touch) =====
+      { x: 500,  y: 260, w: 500,  h: 50 },  // top arm
+      { x: 1150, y: 250, w: 50,   h: 400 }, // right arm
+      { x: 600,  y: 730, w: 500,  h: 50 },  // bottom arm
+      { x: 400,  y: 390, w: 50,   h: 400 }, // left arm
+ 
+      // ===== CORNER PILLARS =====
+      { x: 200,  y: 200, w: 100,  h: 100 },
+      { x: 1300, y: 200, w: 100,  h: 100 },
+      { x: 200,  y: 740, w: 100,  h: 100 },
+      { x: 1300, y: 740, w: 100,  h: 100 },
+ 
+      // ===== CENTER PILLAR =====
+      { x: 760,  y: 480, w: 80,   h: 80 },
+    ],
+  }, 
+
+  // ==========================================
+  // MAP 8: Debris Field
+  // Open arena with irregular scattered blocks. No dead ends, so enemies keep moving.
+  // ==========================================
+  {
+    name: "Debris Field",
+    spawn: { x: 800, y: 520 },
+    walls: [
+      // ===== SCATTERED BLOCKS (irregular, 150px+ apart) =====
+      { x: 1080, y: 620, w: 100, h: 90 },
+      { x: 570, y: 250, w: 120, h: 80 },
+      { x: 270, y: 450, w: 90, h: 130 },
+      { x: 330, y: 750, w: 80, h: 60 },
+      { x: 1200, y: 260, w: 200, h: 90 },
+      { x: 960, y: 350, w: 90, h: 60 },
+      { x: 770, y: 740, w: 120, h: 70 },
+      { x: 1330, y: 540, w: 60, h: 130 },
+      { x: 520, y: 530, w: 80, h: 60 },
+    ],
+  }
 ];
