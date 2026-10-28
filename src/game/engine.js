@@ -1,7 +1,7 @@
 import {
   initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
   playHeartbeatLub, playHeartbeatDub, playCellDivide, playWallImpact, playTankThud, playWormSquirm,
-  resetSoundCooldowns,
+  resetSoundCooldowns, getMuteState,
 } from "./sound.js";
 
 import {
@@ -629,19 +629,19 @@ export function createEngine(onGameOver) {
       state.heartbeatPhase = 0;
     }
 
-    let closestWormDist = Infinity;
-    for (let i = 0; i < state.enemies.length; i++) {
-      const e = state.enemies[i];
-      if (e.type === "worm") {
-        const d = Math.hypot(e.x - p.x, e.y - p.y);
-        if (d < closestWormDist) closestWormDist = d;
+    if (!getMuteState()) {
+      let closestWormDist = Infinity;
+      for (let i = 0; i < state.enemies.length; i++) {
+        const e = state.enemies[i];
+        if (e.type === "worm") {
+          const d = Math.hypot(e.x - p.x, e.y - p.y);
+          if (d < closestWormDist) closestWormDist = d;
+        }
+      }
+      if (closestWormDist < 450) {
+        playWormSquirm(state.elapsed, closestWormDist / 450);
       }
     }
-
-    if (closestWormDist < 450) {
-      playWormSquirm(state.elapsed, closestWormDist / 450);
-    }
-
     // Record breadcrumb every 70px of travel or major turn
     const distFromLastBreadcrumb = Math.hypot(
         p.x - state.lastBreadcrumbPos.x,
