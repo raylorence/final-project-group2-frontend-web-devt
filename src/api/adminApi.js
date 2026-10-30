@@ -66,6 +66,7 @@ export const deleteScore = async (scoreId, token = null) => {
 
 export default {
     getUsers,
+    getAllScores,
     deleteUser,
     deleteScore
 };
