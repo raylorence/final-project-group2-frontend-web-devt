@@ -42,16 +42,6 @@
     border-bottom: 1px solid var(--hk-border);
 }
 
-.hk-hero::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 66%;
-    width: 1px;
-    background: rgba(182, 185, 108, 0.07);
-    pointer-events: none;
-}
 
 .hk-hero-content {
     position: relative;
