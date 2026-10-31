@@ -1,7 +1,7 @@
 import {
   initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
   playHeartbeatLub, playHeartbeatDub, playCellDivide, playWallImpact, playTankThud, playWormSquirm,
-  resetSoundCooldowns, getMuteState,
+  resetSoundCooldowns, getMuteState, playTankRupture, playWormBurst,
 } from "./sound.js";
 
 import {
@@ -824,11 +824,23 @@ function pickEnemyType() {
             e.hitFlash = 60;
           }
 
-          if (e.type === "tank" || e.type === "splitter") {
-            const bLen = Math.hypot(b.vx, b.vy) || 1;
-            const kx = (b.vx / bLen) * 3;
-            const ky = (b.vy / bLen) * 3;
-            const kb = tryMoveCircle(e.x, e.y, e.size / 2, kx, ky);
+          const bLen = Math.hypot(b.vx, b.vy) || 1;
+          const bDirX = b.vx / bLen;
+          const bDirY = b.vy / bLen;
+
+          if (e.type === "tank") {
+            // Heavy tank: small impulse + spark chip particles
+            e.burstVx = (e.burstVx || 0) + bDirX * 60;
+            e.burstVy = (e.burstVy || 0) + bDirY * 60;
+            explode(b.x, b.y, "#d8b4fe", 3);
+          } else if (e.type === "worm") {
+            // Worm flinches perpendicular to bullet trajectory, thrashing its body
+            const side = Math.random() < 0.5 ? -1 : 1;
+            e.burstVx = (e.burstVx || 0) + -bDirY * side * 140;
+            e.burstVy = (e.burstVy || 0) + bDirX * side * 140;
+            e.wobble += 3.5; // Instant body spasm
+          } else if (e.type === "splitter") {
+            const kb = tryMoveCircle(e.x, e.y, e.size / 2, bDirX * 3, bDirY * 3);
             e.x = kb.x;
             e.y = kb.y;
           }
@@ -837,17 +849,65 @@ function pickEnemyType() {
             playKill(e.type);
             state.score += e.points;
             state.kills += 1;
-            state.screenShake = Math.max(state.screenShake, e.type === "tank" ? 7 : 3);
-            explode(e.x, e.y, e.color, 8);
 
-            if (e.type === "splitter" && e.size > 14) {
+            if (e.type === "tank") {
+              // 1. TANK CATASTROPHIC DETONATION
+              playTankRupture();
+              state.screenShake = 16;
+              explode(e.x, e.y, "#a371f7", 22);
+              explode(e.x, e.y, "#ffd166", 12); // Hot core sparks
+
+              // Spawn 5 flying armor shrapnel shards with high kinetic burst
+              const shardCount = 5;
+              for (let k = 0; k < shardCount; k++) {
+                const angle = (k / shardCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+                const shardSpd = 180 + Math.random() * 120;
+                state.particles.push({
+                  x: e.x,
+                  y: e.y,
+                  vx: Math.cos(angle) * shardSpd,
+                  vy: Math.sin(angle) * shardSpd,
+                  life: 520,
+                  maxLife: 520,
+                  color: "#c084fc",
+                  size: 5.5,
+                });
+              }
+            } else if (e.type === "worm") {
+              // 2. WORM VISCOUS DECOMPRESSION
+              playWormBurst();
+              state.screenShake = 6;
+              explode(e.x, e.y, "#168BFF", 16);
+              explode(e.x, e.y, "#8AD5FF", 8);
+
+              // Eject high-velocity fluid globs along its squirming spine
+              for (let k = 0; k < 6; k++) {
+                const ang = e.wobble + (k * Math.PI) / 3;
+                const spd = 120 + Math.random() * 100;
+                state.particles.push({
+                  x: e.x + (Math.random() - 0.5) * 8,
+                  y: e.y + (Math.random() - 0.5) * 8,
+                  vx: Math.cos(ang) * spd,
+                  vy: Math.sin(ang) * spd,
+                  life: 340,
+                  maxLife: 340,
+                  color: k % 2 === 0 ? "#56B8FF" : "#0754A6",
+                  size: 4,
+                });
+              }
+            } else if (e.type === "splitter" && e.size > 14) {
+              // 3. SPLITTER MITOTIC BURST (Your existing improved logic)
               const childSize = e.size * 0.6;
               const { p1, p2, ux, uy } = getSplitPositions(e, childSize);
-              const SPLIT_BURST = 220; // px/s, fades out in about 0.4s
+              const SPLIT_BURST = 220;
               spawnEnemy("splitter", p1.x, p1.y, childSize, 1, { vx: -ux * SPLIT_BURST, vy: -uy * SPLIT_BURST });
               spawnEnemy("splitter", p2.x, p2.y, childSize, 1, { vx: ux * SPLIT_BURST, vy: uy * SPLIT_BURST });
               playCellDivide();
+            } else {
+              state.screenShake = Math.max(state.screenShake, 3);
+              explode(e.x, e.y, e.color, 8);
             }
+
             state.enemies.splice(ei, 1);
           } else {
             playHit();
