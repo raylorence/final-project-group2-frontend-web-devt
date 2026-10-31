@@ -118,6 +118,22 @@ export function playKill(type) {
   }
 }
 
+
+export function playTankRupture() {
+  if (!audioCtx || isMuted) return;
+  // Sub-bass detonation + metallic tear
+  playOsc("sawtooth", 160, 25, 0.45, 0.45);
+  playOsc("triangle", 90, 20, 0.5, 0.5);
+  playNoise(0.35, 0.35, 250);
+}
+
+export function playWormBurst() {
+  if (!audioCtx || isMuted) return;
+  // Wet high-pressure pop + squelch
+  playOsc("sine", 580, 110, 0.18, 0.35);
+  playNoise(0.2, 0.28, 1600);
+}
+
 let lastWormSquelch = -1000;
 let lastTankThudTime = -1000;
 
