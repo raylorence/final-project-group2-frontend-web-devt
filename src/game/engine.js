@@ -208,11 +208,9 @@ export function createEngine(onGameOver) {
   }
 
   function circleHitsAnyWall(cx, cy, cr) {
-    // Top HUD and world boundary checks
     if (cy - cr < HUD_HEIGHT || cy + cr > WORLD_H) return true;
     if (cx - cr < 0 || cx + cr > WORLD_W) return true;
 
-    // Check only internal arena obstacles
     for (let i = 0; i < state.walls.length; i++) {
       const w = state.walls[i];
       if (circleRectOverlap(cx, cy, cr, w.x, w.y, w.w, w.h)) return true;
@@ -220,18 +218,14 @@ export function createEngine(onGameOver) {
     return false;
   }
 
-  // Robust circle movement with sliding support
   function tryMoveCircle(x, y, r, mx, my) {
-    // Full diagonal move
     if (!circleHitsAnyWall(x + mx, y + my, r)) {
       return { x: x + mx, y: y + my };
     }
 
-    // Test sliding along individual axes
     const canSlideX = !circleHitsAnyWall(x + mx, y, r);
     const canSlideY = !circleHitsAnyWall(x, y + my, r);
 
-    // If both are individually clear, prioritize whichever axis has greater displacement
     if (canSlideX && canSlideY) {
       return Math.abs(mx) >= Math.abs(my) ? { x: x + mx, y } : { x, y: y + my };
     }
@@ -241,13 +235,9 @@ export function createEngine(onGameOver) {
     return { x, y };
   }
 
-    // ---------- Splitting ----------
-  // Axes a splitter can divide along: horizontal, diagonal, vertical, other diagonal.
+  // ---------- Splitting ----------
   const SPLIT_ANGLES = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4];
 
-  // Picks a random split axis and returns where the two children appear,
-  // plus the unit direction (ux, uy) they should fly apart along.
-  // Starts at a random axis and tries the others if a child would land in a wall.
   function getSplitPositions(e, childSize) {
     const offset = 14;
     const start = Math.floor(Math.random() * SPLIT_ANGLES.length);
@@ -258,13 +248,12 @@ export function createEngine(onGameOver) {
       const p1 = { x: e.x - ux * offset, y: e.y - uy * offset };
       const p2 = { x: e.x + ux * offset, y: e.y + uy * offset };
       if (
-        !circleHitsAnyWall(p1.x, p1.y, childSize / 2) &&
-        !circleHitsAnyWall(p2.x, p2.y, childSize / 2)
+          !circleHitsAnyWall(p1.x, p1.y, childSize / 2) &&
+          !circleHitsAnyWall(p2.x, p2.y, childSize / 2)
       ) {
         return { p1, p2, ux, uy };
       }
     }
-    // Every axis is blocked: fall back to the old horizontal split.
     return {
       p1: { x: e.x - offset, y: e.y },
       p2: { x: e.x + offset, y: e.y },
@@ -274,7 +263,7 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Spawning ----------
-function pickEnemyType() {
+  function pickEnemyType() {
     let totalWeight = 0;
     for (const key in ENEMY_TYPES) {
       totalWeight += ENEMY_TYPES[key].spawnWeight;
@@ -288,7 +277,6 @@ function pickEnemyType() {
       }
     }
 
-    // Fallback to the first available enemy type if floating point math is slightly off
     return Object.keys(ENEMY_TYPES)[0];
   }
 
@@ -317,25 +305,23 @@ function pickEnemyType() {
 
       while (!valid && attempts < 25) {
         const edge = Math.floor(Math.random() * 4);
-        if (edge === 0) { // Top of screen
+        if (edge === 0) {
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewTop - buffer;
-        } else if (edge === 1) { // Right of screen
+        } else if (edge === 1) {
           sx = viewRight + buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
-        } else if (edge === 2) { // Bottom of screen
+        } else if (edge === 2) {
           sx = Math.random() * (viewRight - viewLeft) + viewLeft;
           sy = viewBottom + buffer;
-        } else { // Left of screen
+        } else {
           sx = viewLeft - buffer;
           sy = Math.random() * (viewBottom - viewTop) + viewTop;
         }
 
-        // Clamp spawn coordinates so they are strictly within world margins
         sx = Math.max(size + 5, Math.min(WORLD_W - size - 5, sx));
         sy = Math.max(HUD_HEIGHT + size + 5, Math.min(WORLD_H - size - 5, sy));
 
-        // Accept if not hitting any internal walls and not directly inside the player's view
         const inViewX = sx > viewLeft + 10 && sx < viewRight - 10;
         const inViewY = sy > viewTop + 10 && sy < viewBottom - 10;
 
@@ -346,7 +332,6 @@ function pickEnemyType() {
       }
 
       if (!valid) {
-        // Fallback to center-clear quadrant
         sx = Math.random() > 0.5 ? 100 : WORLD_W - 100;
         sy = Math.random() > 0.5 ? HUD_HEIGHT + 100 : WORLD_H - 100;
       }
@@ -382,19 +367,24 @@ function pickEnemyType() {
     });
   }
 
-  function explode(x, y, color, count = 8) {
-    if (state.particles.length > 200) return;
-    for (let i = 0; i < count; i++) {
+  // --- BALANCED PARTICLE GENERATOR ---
+  function explode(x, y, color, count = 8, customDuration = null) {
+    const isCrowded = state.particles.length > 110;
+    const actualCount = isCrowded ? Math.ceil(count * 0.55) : count;
+    const baseLife = customDuration || (isCrowded ? 200 : 300);
+
+    for (let i = 0; i < actualCount; i++) {
+      if (state.particles.length >= 220) break;
       const a = Math.random() * Math.PI * 2;
-      const sp = 60 + Math.random() * 180;
+      const sp = 70 + Math.random() * 150;
       state.particles.push({
         x, y,
         vx: Math.cos(a) * sp,
         vy: Math.sin(a) * sp,
-        life: 380,
-        maxLife: 380,
+        life: baseLife,
+        maxLife: baseLife,
         color,
-        size: 2 + Math.random() * 3,
+        size: 2 + Math.random() * 2.5,
       });
     }
   }
@@ -450,8 +440,8 @@ function pickEnemyType() {
           y: p.y - (moveDir.dy / len) * rearDist + (Math.random() - 0.5) * 4,
           vx: -(moveDir.dx / len) * 20 + (Math.random() - 0.5) * 15,
           vy: -(moveDir.dy / len) * 20 + (Math.random() - 0.5) * 15,
-          life: 200,
-          maxLife: 200,
+          life: 180,
+          maxLife: 180,
           color: "rgba(78, 201, 176, 0.7)",
           size: 2,
         });
@@ -488,7 +478,7 @@ function pickEnemyType() {
       age: 0,
     });
 
-    for (let k = 0; k < 4; k++) {
+    for (let k = 0; k < 3; k++) {
       const spread = (Math.random() - 0.5) * 1.2;
       const spd = 40 + Math.random() * 80;
       state.particles.push({
@@ -496,10 +486,10 @@ function pickEnemyType() {
         y: tipY,
         vx: (dirX / len) * spd + Math.cos(spread) * 25,
         vy: (dirY / len) * spd + Math.sin(spread) * 25,
-        life: 100,
-        maxLife: 100,
+        life: 80,
+        maxLife: 80,
         color: k % 2 === 0 ? "#ffffff" : "#a5f3e0",
-        size: 2.5,
+        size: 2.2,
       });
     }
   }
@@ -527,12 +517,10 @@ function pickEnemyType() {
   function pickEnemyDirection(e, p) {
     const radius = e.size / 2;
 
-    // 1. Determine target: Player if visible, else the furthest visible player footprint
     let targetX = p.x;
     let targetY = p.y;
 
     if (!hasLineOfSight(e.x, e.y, p.x, p.y, radius)) {
-      // Find the most recent breadcrumb that this enemy still has line-of-sight to
       const searchLimit = Math.max(0, state.breadcrumbs.length - 5);
       for (let i = state.breadcrumbs.length - 1; i >= searchLimit; i--) {
         const bc = state.breadcrumbs[i];
@@ -544,7 +532,6 @@ function pickEnemyType() {
       }
     }
 
-    // 2. Run your preferred sensor steering towards targetX, targetY
     const rawAngle = Math.atan2(targetY - e.y, targetX - e.x);
     let bestDir = e.currentDir || ENEMY_DIRS[0];
     let bestScore = Infinity;
@@ -686,7 +673,7 @@ function pickEnemyType() {
         playWormSquirm(state.elapsed, closestWormDist / 450);
       }
     }
-    // Record breadcrumb every 70px of travel or major turn
+
     const distFromLastBreadcrumb = Math.hypot(
         p.x - state.lastBreadcrumbPos.x,
         p.y - state.lastBreadcrumbPos.y
@@ -696,7 +683,6 @@ function pickEnemyType() {
       state.breadcrumbs.push({ x: p.x, y: p.y, time: state.elapsed });
       state.lastBreadcrumbPos = { x: p.x, y: p.y };
 
-      // Keep only the last 20 breadcrumbs
       if (state.breadcrumbs.length > 20) {
         state.breadcrumbs.shift();
       }
@@ -760,9 +746,8 @@ function pickEnemyType() {
         }
       }
 
-// --- TANK FOOTSTEP THUD ---
+      // Tank footstep thud
       if (e.type === "tank") {
-        // Step every full rotation of wobble (~1.05 seconds per cycle at 6 rad/s)
         const prevWobble = e.wobble - dt * 6;
         const crossedCycle = Math.floor(e.wobble / Math.PI) > Math.floor(prevWobble / Math.PI);
 
@@ -780,16 +765,17 @@ function pickEnemyType() {
       if (state.elapsed > p.invulnUntil && distSq(e.x, e.y, p.x, p.y) < hitRadius * hitRadius) {
         p.health = Math.max(0, p.health - e.damage);
         p.invulnUntil = state.elapsed + PLAYER.invulnMs;
-        state.screenShake = 14;
+        // Clamp damage shake to 16
+        state.screenShake = Math.min(16, Math.max(state.screenShake, 14));
         playHurt();
-        explode(p.x, p.y, "#f85149", 12);
+        explode(p.x, p.y, "#f85149", 10);
         state.enemies.splice(i, 1);
 
         if (p.health <= 0) {
           state.alive = false;
           state.screenShake = 0;
           playGameOver();
-          explode(p.x, p.y, "#4ec9b0", 40);
+          explode(p.x, p.y, "#4ec9b0", 30, 450);
 
           if (!state.gameOverFired) {
             state.gameOverFired = true;
@@ -817,7 +803,7 @@ function pickEnemyType() {
 
         if (distSq(b.x, b.y, e.x, e.y) < totalRadius * totalRadius) {
           e.hp -= b.damage;
-          explode(b.x, b.y, e.color, 2);
+          explode(b.x, b.y, e.color, 2, 120);
           consumed = true;
 
           if (e.type === "tank" || e.type === "splitter" || e.type === "worm") {
@@ -829,16 +815,14 @@ function pickEnemyType() {
           const bDirY = b.vy / bLen;
 
           if (e.type === "tank") {
-            // Heavy tank: small impulse + spark chip particles
-            e.burstVx = (e.burstVx || 0) + bDirX * 60;
-            e.burstVy = (e.burstVy || 0) + bDirY * 60;
-            explode(b.x, b.y, "#d8b4fe", 3);
+            e.burstVx = (e.burstVx || 0) + bDirX * 55;
+            e.burstVy = (e.burstVy || 0) + bDirY * 55;
+            explode(b.x, b.y, "#d8b4fe", 3, 140);
           } else if (e.type === "worm") {
-            // Worm flinches perpendicular to bullet trajectory, thrashing its body
             const side = Math.random() < 0.5 ? -1 : 1;
-            e.burstVx = (e.burstVx || 0) + -bDirY * side * 140;
-            e.burstVy = (e.burstVy || 0) + bDirX * side * 140;
-            e.wobble += 3.5; // Instant body spasm
+            e.burstVx = (e.burstVx || 0) + -bDirY * side * 130;
+            e.burstVy = (e.burstVy || 0) + bDirX * side * 130;
+            e.wobble += 3.5;
           } else if (e.type === "splitter") {
             const kb = tryMoveCircle(e.x, e.y, e.size / 2, bDirX * 3, bDirY * 3);
             e.x = kb.x;
@@ -851,52 +835,47 @@ function pickEnemyType() {
             state.kills += 1;
 
             if (e.type === "tank") {
-              // 1. TANK CATASTROPHIC DETONATION
               playTankRupture();
-              state.screenShake = 16;
-              explode(e.x, e.y, "#a371f7", 22);
-              explode(e.x, e.y, "#ffd166", 12); // Hot core sparks
+              // Clamp Tank kill shake to 14
+              state.screenShake = Math.min(16, Math.max(state.screenShake, 14));
+              explode(e.x, e.y, "#a371f7", 16, 360);
+              explode(e.x, e.y, "#ffd166", 8, 240);
 
-              // Spawn 5 flying armor shrapnel shards with high kinetic burst
-              const shardCount = 5;
+              const shardCount = 4;
               for (let k = 0; k < shardCount; k++) {
                 const angle = (k / shardCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-                const shardSpd = 180 + Math.random() * 120;
+                const shardSpd = 160 + Math.random() * 100;
                 state.particles.push({
                   x: e.x,
                   y: e.y,
                   vx: Math.cos(angle) * shardSpd,
                   vy: Math.sin(angle) * shardSpd,
-                  life: 520,
-                  maxLife: 520,
+                  life: 380,
+                  maxLife: 380,
                   color: "#c084fc",
-                  size: 5.5,
+                  size: 4.5,
                 });
               }
             } else if (e.type === "worm") {
-              // 2. WORM VISCOUS DECOMPRESSION
               playWormBurst();
-              state.screenShake = 6;
-              explode(e.x, e.y, "#168BFF", 16);
-              explode(e.x, e.y, "#8AD5FF", 8);
+              state.screenShake = Math.min(16, Math.max(state.screenShake, 5));
+              explode(e.x, e.y, "#168BFF", 12, 260);
 
-              // Eject high-velocity fluid globs along its squirming spine
-              for (let k = 0; k < 6; k++) {
-                const ang = e.wobble + (k * Math.PI) / 3;
-                const spd = 120 + Math.random() * 100;
+              for (let k = 0; k < 4; k++) {
+                const ang = e.wobble + (k * Math.PI) / 2;
+                const spd = 110 + Math.random() * 90;
                 state.particles.push({
-                  x: e.x + (Math.random() - 0.5) * 8,
-                  y: e.y + (Math.random() - 0.5) * 8,
+                  x: e.x + (Math.random() - 0.5) * 6,
+                  y: e.y + (Math.random() - 0.5) * 6,
                   vx: Math.cos(ang) * spd,
                   vy: Math.sin(ang) * spd,
-                  life: 340,
-                  maxLife: 340,
+                  life: 250,
+                  maxLife: 250,
                   color: k % 2 === 0 ? "#56B8FF" : "#0754A6",
-                  size: 4,
+                  size: 3.5,
                 });
               }
             } else if (e.type === "splitter" && e.size > 14) {
-              // 3. SPLITTER MITOTIC BURST (Your existing improved logic)
               const childSize = e.size * 0.6;
               const { p1, p2, ux, uy } = getSplitPositions(e, childSize);
               const SPLIT_BURST = 220;
@@ -904,8 +883,8 @@ function pickEnemyType() {
               spawnEnemy("splitter", p2.x, p2.y, childSize, 1, { vx: ux * SPLIT_BURST, vy: uy * SPLIT_BURST });
               playCellDivide();
             } else {
-              state.screenShake = Math.max(state.screenShake, 3);
-              explode(e.x, e.y, e.color, 8);
+              state.screenShake = Math.min(16, Math.max(state.screenShake, 2));
+              explode(e.x, e.y, e.color, 6, 220);
             }
 
             state.enemies.splice(ei, 1);
@@ -918,19 +897,21 @@ function pickEnemyType() {
       if (consumed) state.bullets.splice(bi, 1);
     }
 
-    // Particles
+    // --- HIGH-DRAG PARTICLE UPDATE ---
     for (let i = state.particles.length - 1; i >= 0; i--) {
       const pt = state.particles[i];
       pt.x += pt.vx * dt;
       pt.y += pt.vy * dt;
-      pt.vx *= 0.94;
-      pt.vy *= 0.94;
+      // Increased drag from 0.94 -> 0.89 for punchy expansion + instant stop
+      pt.vx *= 0.89;
+      pt.vy *= 0.89;
       pt.life -= delta;
       if (pt.life <= 0) state.particles.splice(i, 1);
     }
 
+    // Accelerated screen shake recovery (0.05 -> 0.07)
     if (state.screenShake > 0) {
-      state.screenShake = Math.max(0, state.screenShake - delta * 0.05);
+      state.screenShake = Math.max(0, state.screenShake - delta * 0.07);
     }
   }
 
