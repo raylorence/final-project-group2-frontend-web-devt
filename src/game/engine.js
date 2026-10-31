@@ -376,7 +376,7 @@ export function createEngine(onGameOver) {
     for (let i = 0; i < actualCount; i++) {
       if (state.particles.length >= 220) break;
       const a = Math.random() * Math.PI * 2;
-      const sp = 70 + Math.random() * 150;
+      const sp = 150 + Math.random() * 210;
       state.particles.push({
         x, y,
         vx: Math.cos(a) * sp,
@@ -844,7 +844,7 @@ export function createEngine(onGameOver) {
               const shardCount = 4;
               for (let k = 0; k < shardCount; k++) {
                 const angle = (k / shardCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-                const shardSpd = 160 + Math.random() * 100;
+                const shardSpd = 280 + Math.random() * 180;
                 state.particles.push({
                   x: e.x,
                   y: e.y,
@@ -863,7 +863,7 @@ export function createEngine(onGameOver) {
 
               for (let k = 0; k < 4; k++) {
                 const ang = e.wobble + (k * Math.PI) / 2;
-                const spd = 110 + Math.random() * 90;
+                const spd = 220 + Math.random() * 160;
                 state.particles.push({
                   x: e.x + (Math.random() - 0.5) * 6,
                   y: e.y + (Math.random() - 0.5) * 6,
@@ -903,8 +903,8 @@ export function createEngine(onGameOver) {
       pt.x += pt.vx * dt;
       pt.y += pt.vy * dt;
       // Increased drag from 0.94 -> 0.89 for punchy expansion + instant stop
-      pt.vx *= 0.89;
-      pt.vy *= 0.89;
+      pt.vx *= 0.93;
+      pt.vy *= 0.93;
       pt.life -= delta;
       if (pt.life <= 0) state.particles.splice(i, 1);
     }
