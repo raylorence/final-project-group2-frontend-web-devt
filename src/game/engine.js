@@ -793,8 +793,14 @@ function pickEnemyType() {
             explode(e.x, e.y, e.color, 8);
 
             if (e.type === "splitter" && e.size > 14) {
-              spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
-              spawnEnemy("splitter", e.x + 10, e.y, e.size * 0.6, 1);
+              const bLen = Math.hypot(b.vx, b.vy) || 1;
+              const nx = b.vx / bLen;
+              const ny = b.vy / bLen;
+              const offsetX = -ny * 10;
+              const offsetY = nx * 10;
+
+              spawnEnemy("splitter", e.x + offsetX, e.y + offsetY, e.size * 0.6, 1);
+              spawnEnemy("splitter", e.x - offsetX, e.y - offsetY, e.size * 0.6, 1);
               playCellDivide();
             }
             state.enemies.splice(ei, 1);
