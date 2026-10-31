@@ -204,7 +204,7 @@ export default function Admin() {
                       }}
                   >
                     <th style={{ padding: 10 }}>Player</th>
-                    <th style={{ padding: 10 }}>Kills</th>
+                    <th style={{ padding: 10 }}>Score</th>
                     <th style={{ padding: 10 }}>Survived</th>
                     <th style={{ padding: 10 }}></th>
                   </tr>
