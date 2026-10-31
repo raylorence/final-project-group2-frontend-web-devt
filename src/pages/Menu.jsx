@@ -68,7 +68,11 @@ export default function Menu() {
     return (
         <div className="container">
             <div className="card" style={{ textAlign: "center" }}>
-                <h1>Huling Kapsula</h1>
+                    <img
+    src="/huling-kapsula-logo.png"
+    alt="Huling Kapsula"
+    className="menu-logo"
+/>
                 <p className="muted" style={{ marginBottom: 22 }}>
                     You are the body's final line of defense. Survive the viral swarm.
                 </p>
