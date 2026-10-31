@@ -24,7 +24,9 @@ const getInitialBaseUrl = () => {
 const API_CONFIG = {
     BASE_URL: getInitialBaseUrl(),
     TOKEN_KEY: 'auth_token',
-    USER_KEY: 'auth_user'
+    USER_KEY: 'auth_user',
+    _token: null,
+    _user: null
 };
 
 /**
@@ -48,10 +50,11 @@ export const getBaseUrl = () => {
  * @returns {string|null} The stored JWT token or null if unauthenticated
  */
 export const getToken = () => {
+    if (API_CONFIG._token) return API_CONFIG._token;
     if (typeof localStorage !== 'undefined') {
         return localStorage.getItem(API_CONFIG.TOKEN_KEY);
     }
-    return API_CONFIG._token || null;
+    return null;
 };
 
 /**
@@ -59,13 +62,23 @@ export const getToken = () => {
  * @param {string} token - JWT token string
  */
 export const setToken = (token) => {
+    API_CONFIG._token = token || null;
     if (token) {
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem(API_CONFIG.TOKEN_KEY, token);
         }
-        API_CONFIG._token = token;
     } else {
         removeToken();
+    }
+};
+
+/**
+ * Set an in-memory-only token (for admins who must vanish on refresh/close)
+ */
+export const setMemoryToken = (token) => {
+    API_CONFIG._token = token || null;
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(API_CONFIG.TOKEN_KEY);
     }
 };
 
@@ -76,14 +89,19 @@ export const removeToken = () => {
     if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(API_CONFIG.TOKEN_KEY);
     }
-    delete API_CONFIG._token;
+    if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('hk_session');
+    }
+    API_CONFIG._token = null;
 };
 
 /**
- * Get current stored user info from localStorage
- * @returns {object|null} Parsed user profile object or null
+ * Get stored user profile: checks in-memory (admins) first,
+ * then falls back to localStorage (players).
  */
 export const getStoredUser = () => {
+    if (API_CONFIG._user) return API_CONFIG._user;
     if (typeof localStorage !== 'undefined') {
         const user = localStorage.getItem(API_CONFIG.USER_KEY);
         try {
@@ -92,7 +110,7 @@ export const getStoredUser = () => {
             return null;
         }
     }
-    return API_CONFIG._user || null;
+    return null;
 };
 
 /**
@@ -100,13 +118,23 @@ export const getStoredUser = () => {
  * @param {object} user - User profile object (e.g. { _id, username, role })
  */
 export const setStoredUser = (user) => {
+    API_CONFIG._user = user || null;
     if (user) {
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem(API_CONFIG.USER_KEY, JSON.stringify(user));
         }
-        API_CONFIG._user = user;
     } else {
         removeStoredUser();
+    }
+};
+
+/**
+ * Set an in-memory-only user (for admins)
+ */
+export const setMemoryUser = (user) => {
+    API_CONFIG._user = user || null;
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(API_CONFIG.USER_KEY);
     }
 };
 
@@ -117,7 +145,11 @@ export const removeStoredUser = () => {
     if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(API_CONFIG.USER_KEY);
     }
-    delete API_CONFIG._user;
+    if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('auth_user');
+        sessionStorage.removeItem('hk_session');
+    }
+    API_CONFIG._user = null;
 };
 
 /**
@@ -222,9 +254,11 @@ export default {
     getBaseUrl,
     getToken,
     setToken,
+    setMemoryToken,
     removeToken,
     getStoredUser,
     setStoredUser,
+    setMemoryUser,
     removeStoredUser,
     apiRequest
 };

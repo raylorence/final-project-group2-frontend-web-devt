@@ -1,7 +1,7 @@
 import {
   initAudio, playShoot, playHit, playKill, playHurt, playGameOver,
   playHeartbeatLub, playHeartbeatDub, playCellDivide, playWallImpact, playTankThud, playWormSquirm,
-  resetSoundCooldowns,
+  resetSoundCooldowns, getMuteState,
 } from "./sound.js";
 
 import {
@@ -274,12 +274,22 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Spawning ----------
-  function pickEnemyType() {
-    const r = Math.random() * 12;
-    if (r < 5) return "fast";
-    if (r < 8) return "tank";
-    if (r < 10) return "splitter";
-    return "worm";
+function pickEnemyType() {
+    let totalWeight = 0;
+    for (const key in ENEMY_TYPES) {
+      totalWeight += ENEMY_TYPES[key].spawnWeight;
+    }
+
+    let r = Math.random() * totalWeight;
+    for (const key in ENEMY_TYPES) {
+      r -= ENEMY_TYPES[key].spawnWeight;
+      if (r <= 0) {
+        return key;
+      }
+    }
+
+    // Fallback to the first available enemy type if floating point math is slightly off
+    return Object.keys(ENEMY_TYPES)[0];
   }
 
   function spawnEnemy(typeName, x, y, sizeOverride, hpOverride, burst) {
@@ -523,7 +533,8 @@ export function createEngine(onGameOver) {
 
     if (!hasLineOfSight(e.x, e.y, p.x, p.y, radius)) {
       // Find the most recent breadcrumb that this enemy still has line-of-sight to
-      for (let i = state.breadcrumbs.length - 1; i >= 0; i--) {
+      const searchLimit = Math.max(0, state.breadcrumbs.length - 5);
+      for (let i = state.breadcrumbs.length - 1; i >= searchLimit; i--) {
         const bc = state.breadcrumbs[i];
         if (hasLineOfSight(e.x, e.y, bc.x, bc.y, radius)) {
           targetX = bc.x;
@@ -662,19 +673,19 @@ export function createEngine(onGameOver) {
       state.heartbeatPhase = 0;
     }
 
-    let closestWormDist = Infinity;
-    for (let i = 0; i < state.enemies.length; i++) {
-      const e = state.enemies[i];
-      if (e.type === "worm") {
-        const d = Math.hypot(e.x - p.x, e.y - p.y);
-        if (d < closestWormDist) closestWormDist = d;
+    if (!getMuteState()) {
+      let closestWormDist = Infinity;
+      for (let i = 0; i < state.enemies.length; i++) {
+        const e = state.enemies[i];
+        if (e.type === "worm") {
+          const d = Math.hypot(e.x - p.x, e.y - p.y);
+          if (d < closestWormDist) closestWormDist = d;
+        }
+      }
+      if (closestWormDist < 450) {
+        playWormSquirm(state.elapsed, closestWormDist / 450);
       }
     }
-
-    if (closestWormDist < 450) {
-      playWormSquirm(state.elapsed, closestWormDist / 450);
-    }
-
     // Record breadcrumb every 70px of travel or major turn
     const distFromLastBreadcrumb = Math.hypot(
         p.x - state.lastBreadcrumbPos.x,

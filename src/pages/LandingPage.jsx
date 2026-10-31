@@ -1,17 +1,30 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getLeaderboard } from "../api/scoreApi.js";
 import "./LandingPage.css";
 
 export default function LandingPage() {
     const navigate = useNavigate();
-
     const { user, loading, signOut } = useAuth();
 
+    const [topPlayers, setTopPlayers] = useState([]);
+    const [serverStatus, setServerStatus] = useState("WAITING FOR SERVER...");
+
+    useEffect(() => {
+            // Instantly pings the backend on load to wake up Render
+            getLeaderboard()
+                .then((data) => {
+                    const scores = Array.isArray(data) ? data : (data?.data || []);
+                    setTopPlayers(scores.slice(0, 3));
+                    setServerStatus("SERVER ONLINE");
+                })
+                .catch(() => setServerStatus("SERVER UNREACHABLE"));
+        }, []);
     const handleSwitchAccount = () => {
         signOut();
         navigate("/login");
     };
-
 
     return (
         <main className="hk-landing">
@@ -21,11 +34,11 @@ export default function LandingPage() {
                         BIOLOGICAL CONTAINMENT SYSTEM // HK-01
                     </p>
 
-                    <h1>
-                        HULING
-                        <br />
-                        <span>KAPSULA</span>
-                    </h1>
+                    <img
+                        src="/huling-kapsula-logo.png"
+                        alt="Huling Kapsula"
+                        className="hk-logo-image"
+                    />
 
                     <div className="hk-divider" />
 
@@ -41,15 +54,40 @@ export default function LandingPage() {
                         eliminate the threat, and beat your high score.
                     </p>
 
+                    {/* Server Wake Status & Mini Leaderboard */}
+                    <div style={{ marginTop: "24px", padding: "12px", border: "1px solid var(--hk-border)", background: "rgba(182, 185, 108, 0.05)", width: "min(350px, 100%)" }}>
+                        <p style={{ margin: "0 0 10px", color: "var(--hk-green)", fontSize: "10px", letterSpacing: "1px", fontWeight: "bold" }}>
+                            [ INTEL ] TOP AGENTS - {serverStatus}
+                            </p>
+                            {topPlayers.length > 0 ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                    {topPlayers.map((p, i) => (
+                                        <div key={i} style={{ display: "flex", justifyContent: "space-between", color: "var(--hk-cream)", fontSize: "11px", fontFamily: "inherit" }}>
+                                            <span>{i + 1}. {p.player?.username || p.username || p.userId?.username || "UNKNOWN"}</span>
+                                            <span>{p.score ?? p.totalScore ?? 0} PTS</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p style={{ margin: 0, color: "var(--hk-muted)", fontSize: "10px" }}>Awaiting database connection...</p>
+                            )}
+                        </div>
                     <div className="hk-actions">
                         {!loading && user ? (
                             <>
                                 <button
                                     className="hk-primary-btn"
-                                    onClick={() => navigate(user.role === "admin" ? "/admin" : "/menu")}
+                                    onClick={() =>
+                                        navigate(
+                                            user.role === "admin"
+                                                ? "/admin"
+                                                : "/menu"
+                                        )
+                                    }
                                 >
                                     RESUME MISSION ({user.username})
                                 </button>
+
                                 <button
                                     className="hk-secondary-btn"
                                     onClick={() => navigate("/leaderboard")}
@@ -65,6 +103,7 @@ export default function LandingPage() {
                                 >
                                     CREATE ACCOUNT
                                 </button>
+
                                 <button
                                     className="hk-secondary-btn"
                                     onClick={() => navigate("/login")}
@@ -75,7 +114,6 @@ export default function LandingPage() {
                         )}
                     </div>
 
-                    {/* Account switcher link for logged-in sessions */}
                     {!loading && user && (
                         <p className="hk-switch-account">
                             Not <strong>{user.username}</strong>?{" "}
