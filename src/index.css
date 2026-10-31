@@ -427,6 +427,14 @@ code {
   margin-right: auto;
 }
 
+.container > .card[style*="text-align: center"] > p.muted {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
 .container > .card[style*="text-align: center"] button {
   min-height: 48px;
   margin-top: 6px;
