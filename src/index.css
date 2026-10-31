@@ -433,6 +433,14 @@ code {
   padding: 14px 32px;
 }
 
+.menu-logo {
+    display: block;
+    width: min(100%, 420px);
+    max-height: 150px;
+    height: auto;
+    object-fit: contain;
+    margin: 18px auto;
+}
 /* Statistics and Top 5 */
 
 .container > div[style*="grid-template-columns"] {

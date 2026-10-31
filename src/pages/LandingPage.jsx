@@ -26,7 +26,6 @@ export default function LandingPage() {
         navigate("/login");
     };
 
-
     return (
         <main className="hk-landing">
             <section className="hk-hero">
@@ -35,11 +34,11 @@ export default function LandingPage() {
                         BIOLOGICAL CONTAINMENT SYSTEM // HK-01
                     </p>
 
-                    <h1>
-                        HULING
-                        <br />
-                        <span>KAPSULA</span>
-                    </h1>
+                    <img
+                        src="/huling-kapsula-logo.png"
+                        alt="Huling Kapsula"
+                        className="hk-logo-image"
+                    />
 
                     <div className="hk-divider" />
 
@@ -78,10 +77,17 @@ export default function LandingPage() {
                             <>
                                 <button
                                     className="hk-primary-btn"
-                                    onClick={() => navigate(user.role === "admin" ? "/admin" : "/menu")}
+                                    onClick={() =>
+                                        navigate(
+                                            user.role === "admin"
+                                                ? "/admin"
+                                                : "/menu"
+                                        )
+                                    }
                                 >
                                     RESUME MISSION ({user.username})
                                 </button>
+
                                 <button
                                     className="hk-secondary-btn"
                                     onClick={() => navigate("/leaderboard")}
@@ -97,6 +103,7 @@ export default function LandingPage() {
                                 >
                                     CREATE ACCOUNT
                                 </button>
+
                                 <button
                                     className="hk-secondary-btn"
                                     onClick={() => navigate("/login")}
@@ -107,7 +114,6 @@ export default function LandingPage() {
                         )}
                     </div>
 
-                    {/* Account switcher link for logged-in sessions */}
                     {!loading && user && (
                         <p className="hk-switch-account">
                             Not <strong>{user.username}</strong>?{" "}

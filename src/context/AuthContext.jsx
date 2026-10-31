@@ -4,6 +4,8 @@ import {
   getStoredUser,
   setToken as saveToken,
   setStoredUser as saveStoredUser,
+  setMemoryToken,
+  setMemoryUser,
   removeToken,
   removeStoredUser,
 } from "../api/apiClient.js";
@@ -29,28 +31,17 @@ export function AuthProvider({ children }) {
   // Initialize and hydrate authentication state on initial page load
   useEffect(() => {
     try {
+      const activeToken = getToken();
+      const activeUser = getStoredUser();
 
-      const existingToken = getToken();
-      const existingUser = getStoredUser();
-
-      if (existingUser && existingUser.role === "admin") {
+// If stored user is an admin, wipe it immediately: admins cannot survive refresh
+      if (activeUser && activeUser.role === "admin") {
         removeToken();
         removeStoredUser();
-      } else if (existingToken && existingUser) {
-        setToken(existingToken);
-        setUser(existingUser);
-      } else {
-        // Fallback: check legacy session storage if present
-        const savedSession = sessionStorage.getItem("hk_session");
-        if (savedSession) {
-          const { token: t, user: u } = JSON.parse(savedSession);
-          if (t && u) {
-            setToken(t);
-            setUser(u);
-            saveToken(t);
-            saveStoredUser(u);
-          }
-        }
+      } else if (activeToken && activeUser) {
+        // Normal players survive refresh
+        setToken(activeToken);
+        setUser(activeUser);
       }
     } catch (err) {
       console.error("Failed to restore auth session:", err);
@@ -58,7 +49,6 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
 
-    // Listen for unauthorized 401 events (e.g. user deleted / token invalid)
     const handleUnauthorized = () => {
       setToken(null);
       setUser(null);
@@ -67,7 +57,6 @@ export function AuthProvider({ children }) {
     if (typeof window !== "undefined") {
       window.addEventListener("auth:unauthorized", handleUnauthorized);
     }
-
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("auth:unauthorized", handleUnauthorized);
@@ -85,16 +74,16 @@ export function AuthProvider({ children }) {
     setUser(userValue);
 
     if (userValue.role === "admin") {
-      // Admin: store strictly in temporary sessionStorage
-      sessionStorage.setItem("hk_session", JSON.stringify({token: tokenValue, user: userValue}));
-      // Do NOT call saveToken / saveStoredUser (localStorage) for admins
+      // Admins: strictly in-memory. Zero browser storage.
+      // Refreshing the tab or closing the window completely dumps this state.
+      removeToken();
+      removeStoredUser();
+      setMemoryToken(tokenValue);
+      setMemoryUser(userValue);
     } else {
-      // Save to persistent storage usi ng API client helpers
+      // Regular players: persist across refreshes and restarts
       saveToken(tokenValue);
       saveStoredUser(userValue);
-
-      // Also keep sessionStorage updated for legacy compatibility
-      sessionStorage.setItem("hk_session", JSON.stringify({ token: tokenValue, user: userValue }));
     }
   }
 
@@ -104,12 +93,9 @@ export function AuthProvider({ children }) {
   function signOut() {
     setToken(null);
     setUser(null);
-
-    // Call API caller logout method to clear stored tokens
     apiLogout();
     removeToken();
     removeStoredUser();
-    sessionStorage.removeItem("hk_session");
   }
 
   return (

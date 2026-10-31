@@ -1,23 +1,61 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { getLeaderboard } from "../api/scoreApi.js";
 
 const PAGE_SIZE = 10;
 
+// Color and accent configuration for the Top 3 ranks
+const TOP_RANK_STYLES = {
+    1: {
+        badge: "🥇 1ST",
+        rankColor: "#ffd700", // Gold
+        accentBorder: "3px solid #ffd700",
+        bg: "rgba(255, 215, 0, 0.08)",
+    },
+    2: {
+        badge: "🥈 2ND",
+        rankColor: "#d1d5db", // Silver
+        accentBorder: "3px solid #9ca3af",
+        bg: "rgba(209, 213, 219, 0.05)",
+    },
+    3: {
+        badge: "🥉 3RD",
+        rankColor: "#cd7f32", // Bronze
+        accentBorder: "3px solid #cd7f32",
+        bg: "rgba(205, 127, 50, 0.05)",
+    },
+};
+
 export default function Leaderboard() {
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         getLeaderboard()
             .then((data) => {
                 const scores = Array.isArray(data) ? data : (data?.data || []);
-                // Preserve original ranking position
-                const rankedScores = scores.map((s, index) => ({
+
+                // 1. Sort by score descending, with survivalTime as the tie-breaker
+                const sortedScores = [...scores].sort((a, b) => {
+                    const scoreA = a.score ?? a.totalScore ?? 0;
+                    const scoreB = b.score ?? b.totalScore ?? 0;
+
+                    if (scoreB !== scoreA) {
+                        return scoreB - scoreA;
+                    }
+
+                    // Tie-breaker: higher survival time takes the lead
+                    const timeA = a.survivalTime ?? 0;
+                    const timeB = b.survivalTime ?? 0;
+                    return timeB - timeA;
+                });
+
+                // 2. Assign ranks based on sorted order
+                const rankedScores = sortedScores.map((s, index) => ({
                     ...s,
                     rank: index + 1,
                 }));
+
                 setRows(rankedScores);
             })
             .catch((err) => {
@@ -27,68 +65,24 @@ export default function Leaderboard() {
             .finally(() => setLoading(false));
     }, []);
 
-    // Filter rows by username
-    const filteredRows = useMemo(() => {
-        if (!searchQuery.trim()) return rows;
-        const q = searchQuery.toLowerCase().trim();
-        return rows.filter((r) => {
-            const name = (r.player?.username || r.username || r.userId?.username || "").toLowerCase();
-            return name.includes(q);
-        });
-    }, [rows, searchQuery]);
-
-    // Reset to page 1 whenever the search filter changes
-    const handleSearchChange = (e) => {
-        setSearchQuery(e.target.value);
-        setCurrentPage(1);
-    };
-
-    const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
     const activePage = Math.min(currentPage, totalPages);
     const startIndex = (activePage - 1) * PAGE_SIZE;
-    const currentRows = filteredRows.slice(startIndex, startIndex + PAGE_SIZE);
+    const currentRows = rows.slice(startIndex, startIndex + PAGE_SIZE);
 
     return (
         <div className="container">
             <div className="card">
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        gap: 12,
-                        marginBottom: 16,
-                    }}
-                >
+                <div style={{ marginBottom: 16 }}>
                     <h2 style={{ margin: 0 }}>Global Leaderboard</h2>
-                    <input
-                        type="text"
-                        placeholder="Search player username..."
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                        style={{
-                            maxWidth: 260,
-                            margin: 0,
-                            padding: "8px 12px",
-                            fontSize: 13,
-                        }}
-                    />
                 </div>
 
                 {loading ? (
                     <p className="muted">Loading scores...</p>
-                ) : filteredRows.length === 0 ? (
-                        <div style={{ textAlign: "center", padding: "24px 0" }}>
-                            <p className="muted">
-                                {searchQuery ? `No players found matching "${searchQuery}".` : "No scores recorded yet."}
-                            </p>
-                            {searchQuery && (
-                                <button className="secondary" onClick={() => setSearchQuery("")} style={{ marginTop: 8 }}>
-                                    Clear Search
-                                </button>
-                            )}
-                        </div>
+                ) : rows.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "24px 0" }}>
+                        <p className="muted">No scores recorded yet.</p>
+                    </div>
                 ) : (
                     <>
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -101,24 +95,85 @@ export default function Leaderboard() {
                             </tr>
                             </thead>
                             <tbody>
-                            {currentRows.map((r) => (
-                                <tr key={r._id || r.rank} style={{ borderBottom: "1px solid #21262d" }}>
-                                    <td style={{ padding: 10, color: "#4ec9b0", fontWeight: 700 }}>
-                                        {r.rank}
-                                    </td>
-                                    <td style={{ padding: 10 }}>
-                                        {r.player?.username || r.username || r.userId?.username || "unknown"}
-                                    </td>
-                                    <td style={{ padding: 10, fontWeight: 700 }}>
-                                        {r.score ?? r.totalScore ?? 0}
-                                    </td>
-                                    <td style={{ padding: 10 }} className="muted">
-                                        {r.survivalTime !== undefined && r.survivalTime !== null
-                                            ? `${r.survivalTime}s`
-                                            : "-"}
-                                    </td>
-                                </tr>
-                            ))}
+                            {currentRows.map((r) => {
+                                const isTopThree = r.rank <= 3;
+                                const topStyle = TOP_RANK_STYLES[r.rank];
+
+                                return (
+                                    <tr
+                                        key={r._id || r.rank}
+                                        style={{
+                                            borderBottom: "1px solid #21262d",
+                                            borderLeft: isTopThree ? topStyle.accentBorder : "3px solid transparent",
+                                            background: isTopThree ? topStyle.bg : "transparent",
+                                            transition: "background 0.2s ease",
+                                        }}
+                                    >
+                                        {/* Rank column */}
+                                        <td style={{ padding: "12px 10px", verticalAlign: "middle" }}>
+                                            {isTopThree ? (
+                                                <span
+                                                    style={{
+                                                        display: "inline-block",
+                                                        padding: "2px 8px",
+                                                        borderRadius: 3,
+                                                        background: "rgba(16, 18, 14, 0.8)",
+                                                        border: `1px solid ${topStyle.rankColor}`,
+                                                        color: topStyle.rankColor,
+                                                        fontWeight: 800,
+                                                        fontFamily: "var(--mono, monospace)",
+                                                        fontSize: 11,
+                                                        letterSpacing: "0.05em",
+                                                    }}
+                                                >
+                                                        {topStyle.badge}
+                                                    </span>
+                                            ) : (
+                                                <span
+                                                    style={{
+                                                        paddingLeft: 6,
+                                                        color: "#4ec9b0",
+                                                        fontWeight: 700,
+                                                        fontFamily: "var(--mono, monospace)",
+                                                    }}
+                                                >
+                                                        #{r.rank}
+                                                    </span>
+                                            )}
+                                        </td>
+
+                                        {/* Player name */}
+                                        <td
+                                            style={{
+                                                padding: "12px 10px",
+                                                fontWeight: isTopThree ? 700 : 500,
+                                                color: isTopThree ? topStyle.rankColor : "inherit",
+                                            }}
+                                        >
+                                            {r.player?.username || r.username || r.userId?.username || "unknown"}
+                                        </td>
+
+                                        {/* Score */}
+                                        <td
+                                            style={{
+                                                padding: "12px 10px",
+                                                fontWeight: 800,
+                                                fontSize: isTopThree ? 15 : 13,
+                                                color: isTopThree ? "var(--text, #e8e4d6)" : "inherit",
+                                            }}
+                                        >
+                                            {r.score ?? r.totalScore ?? 0}
+                                        </td>
+
+                                        {/* Survived Duration */}
+                                        <td style={{ padding: "12px 10px" }} className="muted">
+                                            {r.survivalTime !== undefined && r.survivalTime !== null
+                                                ? `${r.survivalTime}s`
+                                                : "-"}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             </tbody>
                         </table>
 
@@ -142,8 +197,8 @@ export default function Leaderboard() {
                                     Previous
                                 </button>
                                 <span className="muted" style={{ fontSize: 13 }}>
-                  Page {activePage} of {totalPages} ({filteredRows.length} total)
-                </span>
+                                    Page {activePage} of {totalPages} ({rows.length} total)
+                                </span>
                                 <button
                                     className="secondary"
                                     disabled={activePage === totalPages}

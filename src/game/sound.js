@@ -4,17 +4,24 @@ let isMuted = localStorage.getItem("game_muted") === "true";
 // Initialize the audio context
 export function initAudio() {
   if (audioCtx) return;
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  audioCtx = new AudioContext();
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
 
-  // WARM-UP HACK: Play a 1-millisecond silent sound to wake up the hardware
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  gain.gain.value = 0; // Completely silent
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start(0);
-  osc.stop(audioCtx.currentTime + 0.001); // Stop after 1ms
+    if (AudioContext) {
+      audioCtx = new AudioContext();
+
+      // WARM-UP HACK: Play a 1-millisecond silent sound to wake up the hardware
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0; // Completely silent
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(0);
+      osc.stop(audioCtx.currentTime + 0.001); // Stop after 1ms
+    }
+  } catch {
+    console.warn("Web Audio API not supported", e);
+  }
 }
 
 // Unlock audio on first user interaction (browser requirement)
