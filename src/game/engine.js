@@ -242,12 +242,22 @@ export function createEngine(onGameOver) {
   }
 
   // ---------- Spawning ----------
-  function pickEnemyType() {
-    const r = Math.random() * 12;
-    if (r < 5) return "fast";
-    if (r < 8) return "tank";
-    if (r < 10) return "splitter";
-    return "worm";
+function pickEnemyType() {
+    let totalWeight = 0;
+    for (const key in ENEMY_TYPES) {
+      totalWeight += ENEMY_TYPES[key].spawnWeight;
+    }
+
+    let r = Math.random() * totalWeight;
+    for (const key in ENEMY_TYPES) {
+      r -= ENEMY_TYPES[key].spawnWeight;
+      if (r <= 0) {
+        return key;
+      }
+    }
+
+    // Fallback to the first available enemy type if floating point math is slightly off
+    return Object.keys(ENEMY_TYPES)[0];
   }
 
   function spawnEnemy(typeName, x, y, sizeOverride, hpOverride) {
