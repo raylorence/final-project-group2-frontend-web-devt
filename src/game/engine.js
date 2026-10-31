@@ -241,6 +241,38 @@ export function createEngine(onGameOver) {
     return { x, y };
   }
 
+    // ---------- Splitting ----------
+  // Axes a splitter can divide along: horizontal, diagonal, vertical, other diagonal.
+  const SPLIT_ANGLES = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4];
+
+  // Picks a random split axis and returns where the two children appear,
+  // plus the unit direction (ux, uy) they should fly apart along.
+  // Starts at a random axis and tries the others if a child would land in a wall.
+  function getSplitPositions(e, childSize) {
+    const offset = 14;
+    const start = Math.floor(Math.random() * SPLIT_ANGLES.length);
+    for (let i = 0; i < SPLIT_ANGLES.length; i++) {
+      const a = SPLIT_ANGLES[(start + i) % SPLIT_ANGLES.length];
+      const ux = Math.cos(a);
+      const uy = Math.sin(a);
+      const p1 = { x: e.x - ux * offset, y: e.y - uy * offset };
+      const p2 = { x: e.x + ux * offset, y: e.y + uy * offset };
+      if (
+        !circleHitsAnyWall(p1.x, p1.y, childSize / 2) &&
+        !circleHitsAnyWall(p2.x, p2.y, childSize / 2)
+      ) {
+        return { p1, p2, ux, uy };
+      }
+    }
+    // Every axis is blocked: fall back to the old horizontal split.
+    return {
+      p1: { x: e.x - offset, y: e.y },
+      p2: { x: e.x + offset, y: e.y },
+      ux: 1,
+      uy: 0,
+    };
+  }
+
   // ---------- Spawning ----------
   function pickEnemyType() {
     const r = Math.random() * 12;
@@ -250,7 +282,7 @@ export function createEngine(onGameOver) {
     return "worm";
   }
 
-  function spawnEnemy(typeName, x, y, sizeOverride, hpOverride) {
+  function spawnEnemy(typeName, x, y, sizeOverride, hpOverride, burst) {
     const t = ENEMY_TYPES[typeName] || {
       size: 20,
       speed: 45,
@@ -335,6 +367,8 @@ export function createEngine(onGameOver) {
       aiCooldown: 0,
       currentDir: null,
       hitFlash: 0,
+      burstVx: burst ? burst.vx : 0,
+      burstVy: burst ? burst.vy : 0,
     });
   }
 
@@ -702,6 +736,19 @@ export function createEngine(onGameOver) {
       e.y = moved.y;
       e.wobble += dt * 6;
 
+      if (e.burstVx || e.burstVy) {
+        const b = tryMoveCircle(e.x, e.y, e.size / 2, e.burstVx * dt, e.burstVy * dt);
+        e.x = b.x;
+        e.y = b.y;
+        const fade = Math.exp(-dt * 8);
+        e.burstVx *= fade;
+        e.burstVy *= fade;
+        if (Math.abs(e.burstVx) < 2 && Math.abs(e.burstVy) < 2) {
+          e.burstVx = 0;
+          e.burstVy = 0;
+        }
+      }
+
 // --- TANK FOOTSTEP THUD ---
       if (e.type === "tank") {
         // Step every full rotation of wobble (~1.05 seconds per cycle at 6 rad/s)
@@ -783,8 +830,11 @@ export function createEngine(onGameOver) {
             explode(e.x, e.y, e.color, 8);
 
             if (e.type === "splitter" && e.size > 14) {
-              spawnEnemy("splitter", e.x - 10, e.y, e.size * 0.6, 1);
-              spawnEnemy("splitter", e.x + 10, e.y, e.size * 0.6, 1);
+              const childSize = e.size * 0.6;
+              const { p1, p2, ux, uy } = getSplitPositions(e, childSize);
+              const SPLIT_BURST = 220; // px/s, fades out in about 0.4s
+              spawnEnemy("splitter", p1.x, p1.y, childSize, 1, { vx: -ux * SPLIT_BURST, vy: -uy * SPLIT_BURST });
+              spawnEnemy("splitter", p2.x, p2.y, childSize, 1, { vx: ux * SPLIT_BURST, vy: uy * SPLIT_BURST });
               playCellDivide();
             }
             state.enemies.splice(ei, 1);
